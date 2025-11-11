@@ -70,10 +70,12 @@ class CineMystTabBarController: UITabBarController, UITabBarControllerDelegate {
         let chatVC = UIViewController()
         chatVC.view.backgroundColor = .systemBackground
         chatVC.tabBarItem = UITabBarItem(title: "Chat", image: UIImage(systemName: "bubble.left.and.bubble.right.fill"), tag: 2)
-
-        let mentorVC = UIViewController()
-        mentorVC.view.backgroundColor = .systemBackground
-        mentorVC.tabBarItem = UITabBarItem(title: "Mentorship", image: UIImage(systemName: "person.2.fill"), tag: 3)
+        // 🔹 Mentorship tab → full flow lives under this nav stack
+            let mentorHome = MentorshipHomeViewController()          // <-- make sure this file is in the target
+            let mentorVC = UINavigationController(rootViewController: mentorHome)
+            mentorVC.tabBarItem = UITabBarItem(title: "Mentorship",
+                                               image: UIImage(systemName: "person.2.fill"),
+                                               tag: 3)
 
         let jobsVC = UINavigationController(rootViewController: JobsViewController())
         jobsVC.tabBarItem = UITabBarItem(title: "Jobs", image: UIImage(systemName: "briefcase.fill"), tag: 4)
@@ -111,6 +113,25 @@ class CineMystTabBarController: UITabBarController, UITabBarControllerDelegate {
         isMenuOpen ? dismissMenu() : openMenu()
     }
 
+    
+    
+    func setFloatingButtonVisible(_ visible: Bool, animated: Bool = true) {
+            // Close the menu if we’re hiding the FAB
+            if !visible { dismissMenu() }
+
+            let changes = {
+                self.floatingButton.alpha = visible ? 1 : 0
+            }
+            if animated {
+                UIView.animate(withDuration: 0.2, animations: changes) { _ in
+                    self.floatingButton.isHidden = !visible
+                }
+            } else {
+                changes()
+                self.floatingButton.isHidden = !visible
+            }
+        }
+    
     private func openMenu() {
         isMenuOpen = true
         blurView.isHidden = false
