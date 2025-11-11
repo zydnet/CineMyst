@@ -23,6 +23,7 @@ final class HomeDashboardViewController: UIViewController {
         setupNavigationBar()
         setupTable()
         loadDummyData()
+        navigationItem.backButtonTitle = ""
     }
 
     // MARK: - Navigation Bar (Header + Search)
@@ -167,9 +168,16 @@ extension HomeDashboardViewController: UITableViewDataSource, UITableViewDelegat
             cell.profileTapped = { [weak self] in
                 guard let self = self else { return }
                 let profileVC = ProfileViewController()
-                profileVC.title = post.username
+                profileVC.hidesBottomBarWhenPushed = true
+
+                // ✅ Hide floating button while in profile
+                if let tabBarController = self.tabBarController as? CineMystTabBarController {
+                    tabBarController.setFloatingButtonVisible(false)
+                }
+
                 self.navigationController?.pushViewController(profileVC, animated: true)
             }
+
 
             // ✅ Handle comment tap
             cell.commentTapped = { [weak self] in

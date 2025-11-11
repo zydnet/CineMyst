@@ -7,7 +7,7 @@
 
 import UIKit
 
-class CineMystTabBarController: UITabBarController {
+class CineMystTabBarController: UITabBarController, UITabBarControllerDelegate {
 
     private let floatingButton: UIButton = {
         let button = UIButton(type: .system)
@@ -39,6 +39,7 @@ class CineMystTabBarController: UITabBarController {
         setupTabBar()
         setupFloatingButton()
         setupBlurView()
+        delegate = self
     }
 
     // MARK: - Tab Bar
@@ -137,7 +138,10 @@ class CineMystTabBarController: UITabBarController {
             optionButton.alpha = 0
             optionButton.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
 
-            UIView.animate(withDuration: 0.3, delay: 0.05 * Double(i), usingSpringWithDamping: 0.6, initialSpringVelocity: 0.8, options: []) {
+            UIView.animate(withDuration: 0.3, delay: 0.05 * Double(i),
+                           usingSpringWithDamping: 0.6,
+                           initialSpringVelocity: 0.8,
+                           options: []) {
                 optionButton.alpha = 1
                 optionButton.transform = .identity
             }
@@ -166,12 +170,10 @@ class CineMystTabBarController: UITabBarController {
             presentDummyScreen(title: "Create Post", color: .systemIndigo)
 
         case "Story", "Flick":
-            // Create the camera view controller
             let cameraVC = CameraViewController()
             cameraVC.modalPresentationStyle = .fullScreen
             cameraVC.modalTransitionStyle = .crossDissolve
 
-            // Add cinematic animation
             let transitionView = UIView(frame: view.bounds)
             transitionView.backgroundColor = UIColor.black
             transitionView.alpha = 0
@@ -224,5 +226,29 @@ class CineMystTabBarController: UITabBarController {
         }
 
         optionButtons.removeAll()
+    }
+
+    // MARK: - Floating Button Visibility
+    func setFloatingButtonVisible(_ visible: Bool) {
+        UIView.animate(withDuration: 0.25) {
+            self.floatingButton.alpha = visible ? 1 : 0
+            self.floatingButton.isHidden = !visible
+        }
+    }
+
+    // MARK: - Tab Bar Controller Delegate Hooks
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        view.bringSubviewToFront(floatingButton)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        setFloatingButtonVisible(true)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        setFloatingButtonVisible(false)
     }
 }
