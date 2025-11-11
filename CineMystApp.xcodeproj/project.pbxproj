@@ -11,7 +11,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		5B9C893E2EC2E45000A0F1F1 /* Exceptions for "CineMystApp" folder in "CineMystApp" target */ = {
+		5B9C89172EC2D95400A0F1F1 /* Exceptions for "CineMystApp" folder in "CineMystApp" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -24,7 +24,7 @@
 		5B9C89072EC2D95200A0F1F1 /* CineMystApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				5B9C893E2EC2E45000A0F1F1 /* Exceptions for "CineMystApp" folder in "CineMystApp" target */,
+				5B9C89172EC2D95400A0F1F1 /* Exceptions for "CineMystApp" folder in "CineMystApp" target */,
 			);
 			path = CineMystApp;
 			sourceTree = "<group>";
@@ -244,7 +244,6 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				"INFOPLIST_FILE[sdk=*]" = CineMystApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
@@ -302,7 +301,6 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				"INFOPLIST_FILE[sdk=*]" = CineMystApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
