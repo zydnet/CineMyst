@@ -2,7 +2,6 @@ import UIKit
 
 final class MentorshipHomeViewController: UIViewController {
     
-
     // MARK: Theme
     private let plum = UIColor(red: 0x43/255, green: 0x16/255, blue: 0x31/255, alpha: 1)
 
@@ -104,7 +103,8 @@ final class MentorshipHomeViewController: UIViewController {
 
     private func buildSections() {
         // MARK: My Session
-        content.addArrangedSubview(sectionHeader(title: "My Session", actionTitle: "See all"))
+        // Pass selector to handle "See all" tap
+        content.addArrangedSubview(sectionHeader(title: "My Session", actionTitle: "See all", target: self, selector: #selector(didTapSeeAllSessions)))
 
         let sessionList = UIStackView()
         sessionList.axis = .vertical
@@ -125,7 +125,7 @@ final class MentorshipHomeViewController: UIViewController {
         ))
 
         // MARK: Mentors grid (2 columns)
-        content.addArrangedSubview(sectionHeader(title: "Mentors", actionTitle: "See all"))
+        content.addArrangedSubview(sectionHeader(title: "Mentors", actionTitle: "See all", target: nil, selector: nil))
 
         let grid = UIStackView()
         grid.axis = .horizontal
@@ -162,18 +162,31 @@ final class MentorshipHomeViewController: UIViewController {
         navigationController?.pushViewController(vc, animated: true)
     }
 
+    // Handler for "See all" sessions
+    @objc private func didTapSeeAllSessions() {
+        let sessionsVC = SessionsViewController() // ensure this file exists
+        sessionsVC.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(sessionsVC, animated: true)
+    }
+
     // MARK: Helpers (views)
-    private func sectionHeader(title: String, actionTitle: String) -> UIView {
+    // Fixed: renamed button variable and selector parameter to avoid shadowing
+    private func sectionHeader(title: String, actionTitle: String, target: Any?, selector: Selector?) -> UIView {
         let t = UILabel()
         t.text = title
         t.font = .systemFont(ofSize: 20, weight: .semibold)
 
-        let action = UIButton(type: .system)
-        action.setTitle(actionTitle, for: .normal)
-        action.setTitleColor(.secondaryLabel, for: .normal)
-        action.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
+        let button = UIButton(type: .system)
+        button.setTitle(actionTitle, for: .normal)
+        button.setTitleColor(.secondaryLabel, for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
 
-        let row = UIStackView(arrangedSubviews: [t, UIView(), action])
+        // Only add target if both provided
+        if let target = target, let selector = selector {
+            button.addTarget(target, action: selector, for: .touchUpInside)
+        }
+
+        let row = UIStackView(arrangedSubviews: [t, UIView(), button])
         row.axis = .horizontal
         row.alignment = .center
         return row
@@ -332,4 +345,3 @@ private extension UIStackView {
         return s
     }
 }
-
