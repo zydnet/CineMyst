@@ -4,6 +4,7 @@
 //
 //  Created by You on Today.
 //  Updated: hide tab bar & floating button while payment screen is visible.
+//           present confirmation VC and navigate back to MentorshipHomeViewController properly.
 //
 
 import UIKit
@@ -18,6 +19,9 @@ final class PaymentViewController: UIViewController {
     private let selectedArea: String?
     private let selectedDate: Date?
     private let selectedTime: String?
+
+    /// NEW: accept mentor (set this before pushing/presenting PaymentViewController)
+    var mentor: Mentor?
 
     init(area: String? = nil, date: Date? = nil, time: String? = nil) {
         self.selectedArea = area
@@ -149,19 +153,17 @@ final class PaymentViewController: UIViewController {
     }
 
     @objc private func payTapped() {
-        let df = DateFormatter(); df.dateStyle = .medium
-        let summary =
-        """
-        Area: \(selectedArea ?? "-")
-        Date: \(selectedDate.map { df.string(from: $0) } ?? "-")
-        Time: \(selectedTime ?? "-")
-        """
-        let a = UIAlertController(title: "Payment success", message: summary, preferredStyle: .alert)
-        a.addAction(UIAlertAction(title: "Done", style: .default, handler: { _ in
-            // optional: pop back to mentorship home after payment
-            self.navigationController?.popToRootViewController(animated: true)
-        }))
-        present(a, animated: true)
+        // create & present the confirmation screen instead of using alert
+        let confirmationVC = PaymentConfirmationViewController()
+        confirmationVC.mentor = self.mentor
+        confirmationVC.scheduledDate = self.selectedDate
+
+        // optional: set onDone if you still want additional behavior
+        confirmationVC.onDone = { [weak self] in
+            print("[PaymentViewController] confirmation done callback")
+        }
+
+        present(confirmationVC, animated: true, completion: nil)
     }
 
     // MARK: - Layout

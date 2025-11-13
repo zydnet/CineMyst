@@ -1,19 +1,28 @@
 //
-//  PaymentConfirmationViewController.swift
-//  CineMystApp
-//
-//  Created by You on Today.
+// PaymentConfirmationViewController.swift
+// Creates a Session on Done. Uses mentor.imageName when available (falls back to demo "Image").
 //
 
 import UIKit
 
 final class PaymentConfirmationViewController: UIViewController {
 
-    // MARK: - Public callback
-    /// Called when user taps Done. The presenting controller can pass a handler to perform navigation.
+    // optional callback
     var onDone: (() -> Void)?
 
-    // MARK: - UI
+    // data passed by caller (may be nil)
+    var mentor: Mentor?
+    var scheduledDate: Date?
+
+    // demo mentors if real mentor missing
+    private let demoMentors: [Mentor] = [
+        Mentor(name: "Nathan Hales", role: "Actor", rating: 4.8, imageName: "Image"),
+        Mentor(name: "Ava Johnson", role: "Casting Director", rating: 4.9, imageName: "Image"),
+        Mentor(name: "Maya Patel", role: "Actor", rating: 5.0, imageName: "Image"),
+        Mentor(name: "Riya Sharma", role: "Actor", rating: 4.9, imageName: "Image")
+    ]
+
+    // UI
     private let dimView: UIView = {
         let v = UIView()
         v.backgroundColor = UIColor(white: 0, alpha: 0.45)
@@ -80,19 +89,17 @@ final class PaymentConfirmationViewController: UIViewController {
         return b
     }()
 
-    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         modalPresentationStyle = .overFullScreen
         modalTransitionStyle = .crossDissolve
-
         view.backgroundColor = .clear
         setupViews()
         doneButton.addTarget(self, action: #selector(didTapDone), for: .touchUpInside)
-
-        // tap outside to dismiss (optional)
         let tap = UITapGestureRecognizer(target: self, action: #selector(dimTapped(_:)))
         dimView.addGestureRecognizer(tap)
+
+        print("[PaymentConfirmation] presented mentor=\(String(describing: mentor?.name)) scheduledDate=\(String(describing: scheduledDate))")
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -100,7 +107,6 @@ final class PaymentConfirmationViewController: UIViewController {
         animateIn()
     }
 
-    // MARK: - Layout
     private func setupViews() {
         view.addSubview(dimView)
         view.addSubview(cardView)
@@ -118,7 +124,6 @@ final class PaymentConfirmationViewController: UIViewController {
             cardView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24)
         ])
 
-        // Build content inside card
         cardView.addSubview(checkBox)
         checkBox.addSubview(checkImage)
         cardView.addSubview(titleLabel)
@@ -151,12 +156,9 @@ final class PaymentConfirmationViewController: UIViewController {
         ])
     }
 
-    // MARK: - Animations
     private func animateIn() {
         cardView.transform = CGAffineTransform(scaleX: 0.92, y: 0.92).concatenating(CGAffineTransform(translationX: 0, y: 20))
-        UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseOut]) {
-            self.dimView.alpha = 1.0
-        }
+        UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseOut]) { self.dimView.alpha = 1.0 }
         UIView.animate(withDuration: 0.32, delay: 0.06, usingSpringWithDamping: 0.82, initialSpringVelocity: 0.8, options: []) {
             self.cardView.transform = .identity
         }
@@ -167,13 +169,40 @@ final class PaymentConfirmationViewController: UIViewController {
             self.cardView.transform = CGAffineTransform(scaleX: 0.96, y: 0.96).concatenating(CGAffineTransform(translationX: 0, y: 8))
             self.dimView.alpha = 0
             self.cardView.alpha = 0
-        }) { _ in
-            completion?()
-        }
+        }) { _ in completion?() }
     }
 
-    // MARK: - Actions
+    // MARK: Actions
     @objc private func didTapDone() {
+        // choose mentor (provided or demo)
+        let usedMentor: Mentor
+        if let m = mentor { usedMentor = m; print("[PaymentConfirmation] using provided mentor: \(m.name)") }
+        else {
+            usedMentor = demoMentors.randomElement()!
+            print("[PaymentConfirmation] mentor nil — using demo: \(usedMentor.name)")
+        }
+
+        // choose date (provided or now)
+        let usedDate = scheduledDate ?? Date()
+        if scheduledDate == nil { print("[PaymentConfirmation] scheduledDate nil — using now: \(usedDate)") }
+
+        // create session including mentor image name (fallback to "Image")
+        let session = Session(
+            id: UUID().uuidString,
+            mentorId: usedMentor.name,
+            mentorName: usedMentor.name,
+            mentorRole: usedMentor.role,
+            date: usedDate,
+            createdAt: Date(),
+            mentorImageName: usedMentor.imageName ?? "Image"
+        )
+
+        SessionStore.shared.add(session)
+        print("[PaymentConfirmation] created session id=\(session.id) mentor=\(session.mentorName)")
+
+        // Replace Mentorship tab to show post-booking screen
+        replaceMentorshipTabWithPostBookingScreen()
+
         animateOut {
             self.dismiss(animated: false) {
                 self.onDone?()
@@ -181,12 +210,73 @@ final class PaymentConfirmationViewController: UIViewController {
         }
     }
 
-    @objc private func dimTapped(_ g: UITapGestureRecognizer) {
-        // optional: dismiss on background tap
-        animateOut {
-            self.dismiss(animated: false) {
-                self.onDone?()
+    @objc private func dimTapped(_ g: UITapGestureRecognizer) { didTapDone() }
+
+    // Helper that replaces the Mentorship tab root and selects it, preserving its tabBarItem
+    private func replaceMentorshipTabWithPostBookingScreen() {
+        let postBookingVC = PostBookingMentorshipViewController()
+        let newNav = UINavigationController(rootViewController: postBookingVC)
+
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = scene.windows.first(where: { $0.isKeyWindow }),
+              let tabBar = window.rootViewController as? UITabBarController,
+              let tabs = tabBar.viewControllers else {
+            DispatchQueue.main.async {
+                let nav = UINavigationController(rootViewController: postBookingVC)
+                nav.modalPresentationStyle = .fullScreen
+                UIApplication.shared.windows.first?.rootViewController?.present(nav, animated: true, completion: nil)
             }
+            return
+        }
+
+        var newTabs = tabs
+        var replaced = false
+
+        for (index, child) in tabs.enumerated() {
+            if let nav = child as? UINavigationController, let root = nav.viewControllers.first {
+                if root is MentorshipHomeViewController || String(describing: type(of: root)).lowercased().contains("mentorship") {
+                    newNav.tabBarItem = nav.tabBarItem
+                    newTabs[index] = newNav
+                    tabBar.setViewControllers(newTabs, animated: false)
+                    tabBar.selectedIndex = index
+                    replaced = true
+                    break
+                }
+            } else {
+                if child is MentorshipHomeViewController || String(describing: type(of: child)).lowercased().contains("mentorship") {
+                    newNav.tabBarItem = child.tabBarItem
+                    newTabs[index] = newNav
+                    tabBar.setViewControllers(newTabs, animated: false)
+                    tabBar.selectedIndex = index
+                    replaced = true
+                    break
+                }
+            }
+        }
+
+        if !replaced {
+            for (index, child) in tabs.enumerated() {
+                let title = (child.tabBarItem.title ?? "").lowercased()
+                if title.contains("mentor") || title.contains("mentorship") {
+                    newNav.tabBarItem = child.tabBarItem
+                    newTabs[index] = newNav
+                    tabBar.setViewControllers(newTabs, animated: false)
+                    tabBar.selectedIndex = index
+                    replaced = true
+                    break
+                }
+            }
+        }
+
+        if !replaced {
+            newNav.tabBarItem = UITabBarItem(title: "Mentorship", image: UIImage(systemName: "person.2.fill"), tag: 99)
+            newTabs.append(newNav)
+            tabBar.setViewControllers(newTabs, animated: false)
+            tabBar.selectedIndex = newTabs.count - 1
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+            postBookingVC.reloadSessions()
         }
     }
 }
