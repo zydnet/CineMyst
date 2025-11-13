@@ -77,7 +77,7 @@ class CineMystTabBarController: UITabBarController, UITabBarControllerDelegate {
                                                image: UIImage(systemName: "person.2.fill"),
                                                tag: 3)
 
-        let jobsVC = UINavigationController(rootViewController: JobsViewController())
+        let jobsVC = UINavigationController(rootViewController: jobsViewController())
         jobsVC.tabBarItem = UITabBarItem(title: "Jobs", image: UIImage(systemName: "briefcase.fill"), tag: 4)
 
         viewControllers = [homeVC, flicksVC, chatVC, mentorVC, jobsVC]
