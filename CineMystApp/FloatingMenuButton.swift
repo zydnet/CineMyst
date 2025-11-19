@@ -61,14 +61,18 @@ struct FloatingMenuButton: View {
             }) {
                 Image(systemName: isExpanded ? "xmark" : "plus")
                     .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(isExpanded ? .accentColor : .white)
+
                     .frame(width: 60, height: 60)
                     .background(
                         LinearGradient(
-                            colors: [Color.blue.opacity(0.8), Color.blue],
+                            colors: isExpanded
+                            ? [Color(.systemGray5)]  // Red circle for X
+                                : [Color.accentColor],  // Purple circle for plus
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
+                    
                     )
                     .clipShape(Circle())
                     .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)

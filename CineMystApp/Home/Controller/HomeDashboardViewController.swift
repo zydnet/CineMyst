@@ -64,10 +64,10 @@ final class HomeDashboardViewController: UIViewController {
         hostingController.view.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            hostingController.view.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -80),
-            hostingController.view.widthAnchor.constraint(equalToConstant: 250),
-            hostingController.view.heightAnchor.constraint(equalToConstant: 250) // Space for arc expansion
+            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: 70),
+            hostingController.view.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: 110),
+            hostingController.view.widthAnchor.constraint(equalToConstant: 220),
+            hostingController.view.heightAnchor.constraint(equalToConstant: 220) // Space for arc expansion
         ])
         
         hostingController.didMove(toParent: self)
