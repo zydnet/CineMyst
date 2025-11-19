@@ -5,13 +5,19 @@
 //  Created by Devanshi on 11/11/25.
 //
 
+
+
 import UIKit
+import SwiftUI
 
 final class HomeDashboardViewController: UIViewController {
 
     // MARK: - Views
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let searchController = UISearchController(searchResultsController: nil)
+
+    /// SwiftUI floating menu
+    private var floatingMenuContainer: UIView!
 
     // MARK: - Data
     private var posts: [Post] = []
@@ -20,14 +26,54 @@ final class HomeDashboardViewController: UIViewController {
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+
         view.backgroundColor = .systemBackground
+
         setupNavigationBar()
         setupTable()
         loadDummyData()
+        setupFloatingMenu()
+
         navigationItem.backButtonTitle = ""
     }
 
-    // MARK: - Navigation Bar (Header + Search)
+    // MARK: - Floating Menu Setup
+    private func setupFloatingMenu() {
+        
+        let swiftUIView = FloatingMenuButton(
+            didTapStory: { [weak self] in
+                print("📷 → OPEN CAMERA (Add Story)")
+                // Add your story creation logic here
+            },
+            didTapPost: { [weak self] in
+                print("📝 → OPEN CREATE POST screen")
+                // Add your post creation logic here
+            },
+            didTapGallery: { [weak self] in
+                print("🖼 → OPEN PHOTO PICKER")
+                // Add your gallery picker logic here
+            }
+        )
+        
+        let hostingController = UIHostingController(rootView: swiftUIView)
+        hostingController.view.backgroundColor = .clear
+        
+        addChild(hostingController)
+        view.addSubview(hostingController.view)
+        
+        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+        
+        NSLayoutConstraint.activate([
+            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            hostingController.view.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -80),
+            hostingController.view.widthAnchor.constraint(equalToConstant: 250),
+            hostingController.view.heightAnchor.constraint(equalToConstant: 250) // Space for arc expansion
+        ])
+        
+        hostingController.didMove(toParent: self)
+    }
+
+    // MARK: - Navigation Bar
     private func setupNavigationBar() {
         navigationItem.title = "CineMyst"
         navigationController?.navigationBar.prefersLargeTitles = true
@@ -38,6 +84,7 @@ final class HomeDashboardViewController: UIViewController {
             target: self,
             action: #selector(profileTapped)
         )
+
         let bellButton = UIBarButtonItem(
             image: UIImage(systemName: "bell"),
             style: .plain,
@@ -47,16 +94,14 @@ final class HomeDashboardViewController: UIViewController {
 
         navigationItem.rightBarButtonItems = [bellButton, profileButton]
 
-        // Configure SearchController
         searchController.searchBar.placeholder = "Search posts or jobs"
-        searchController.obscuresBackgroundDuringPresentation = false
         searchController.searchBar.delegate = self
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
         definesPresentationContext = true
     }
 
-    // MARK: - Setup Table
+    // MARK: - Table Setup
     private func setupTable() {
         tableView.dataSource = self
         tableView.delegate = self
@@ -64,10 +109,14 @@ final class HomeDashboardViewController: UIViewController {
         tableView.showsVerticalScrollIndicator = false
         tableView.backgroundColor = .systemBackground
 
-        tableView.register(PostCellTableViewCell.self, forCellReuseIdentifier: PostCellTableViewCell.reuseId)
-        tableView.register(JobCardCell.self, forCellReuseIdentifier: JobCardCell.reuseId)
+        tableView.register(PostCellTableViewCell.self,
+                           forCellReuseIdentifier: PostCellTableViewCell.reuseId)
+
+        tableView.register(JobCardCell.self,
+                           forCellReuseIdentifier: JobCardCell.reuseId)
 
         view.addSubview(tableView)
+
         tableView.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
@@ -80,26 +129,27 @@ final class HomeDashboardViewController: UIViewController {
 
     // MARK: - Dummy Data
     private func loadDummyData() {
+
         posts = [
             Post(username: "Rani HBO",
                  title: "Professional Actor • 4h",
-                 caption: "Just wrapped filming my latest short film! So grateful to the team.",
+                 caption: "Just wrapped filming my short film!",
                  likes: 120, comments: 35, shares: 15,
                  imageName: "emma",
                  userImageName: "avatar_rani"),
 
             Post(username: "Ava Raj",
                  title: "Director • 2h",
-                 caption: "Excited to announce our next casting call!",
+                 caption: "Next casting call incoming 🎬",
                  likes: 86, comments: 12, shares: 5,
                  imageName: "city",
                  userImageName: "avatar_ava")
         ]
 
         jobs = [
-            Job(role: "Lead Actor - Drama Series 'City of Dreams'",
+            Job(role: "Lead Actor - City of Dreams",
                 company: "YRF Casting",
-                location: "Mumbai, India",
+                location: "Mumbai",
                 pay: "₹5k/day",
                 tag: "Web Series",
                 applicants: 8,
@@ -108,7 +158,7 @@ final class HomeDashboardViewController: UIViewController {
 
             Job(role: "Assistant Director - Feature Film",
                 company: "Red Chillies Entertainment",
-                location: "Mumbai, India",
+                location: "Mumbai",
                 pay: "₹3k/day",
                 tag: "Film",
                 applicants: 15,
@@ -119,22 +169,22 @@ final class HomeDashboardViewController: UIViewController {
         tableView.reloadData()
     }
 
-    // MARK: - Top Bar Actions
+    // MARK: - Header Button Actions
     @objc private func profileTapped() {
-        let myProfileVC = ProfileViewController()
-        navigationController?.pushViewController(myProfileVC, animated: true)
+        navigationController?.pushViewController(ProfileViewController(), animated: true)
     }
 
     @objc private func bellTapped() {
-        let notificationsVC = NotificationsViewController()
-        notificationsVC.hidesBottomBarWhenPushed = true
-        navigationController?.pushViewController(notificationsVC, animated: true)
+        let vc = NotificationsViewController()
+        vc.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(vc, animated: true)
     }
 
-    // MARK: - Navigation to Comment or Share
+    // MARK: - Comment / Share Actions
     func openComments(for post: Post) {
         let vc = CommentViewController(post: post)
         vc.modalPresentationStyle = .pageSheet
+
         if let sheet = vc.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
             sheet.prefersGrabberVisible = true
@@ -145,6 +195,7 @@ final class HomeDashboardViewController: UIViewController {
     func openShareSheet(for post: Post) {
         let vc = ShareBottomSheetController(post: post)
         vc.modalPresentationStyle = .pageSheet
+
         if let sheet = vc.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
             sheet.prefersGrabberVisible = true
@@ -153,17 +204,15 @@ final class HomeDashboardViewController: UIViewController {
     }
 }
 
-// MARK: - UISearchBarDelegate
+// MARK: - Search Delegate
 extension HomeDashboardViewController: UISearchBarDelegate {
     func searchBarShouldBeginEditing(_ searchBar: UISearchBar) -> Bool {
-        // Navigate to Search Screen when search bar is tapped
-        let searchVC = SearchViewController()
-        navigationController?.pushViewController(searchVC, animated: true)
+        navigationController?.pushViewController(SearchViewController(), animated: true)
         return false
     }
 }
 
-// MARK: - TableView
+// MARK: - Table Delegates
 extension HomeDashboardViewController: UITableViewDataSource, UITableViewDelegate {
 
     func numberOfSections(in tableView: UITableView) -> Int { 2 }
@@ -173,57 +222,38 @@ extension HomeDashboardViewController: UITableViewDataSource, UITableViewDelegat
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+
         if indexPath.section == 0 {
-            let cell = tableView.dequeueReusableCell(withIdentifier: PostCellTableViewCell.reuseId, for: indexPath) as! PostCellTableViewCell
+            let cell = tableView.dequeueReusableCell(
+                withIdentifier: PostCellTableViewCell.reuseId,
+                for: indexPath
+            ) as! PostCellTableViewCell
+
             let post = posts[indexPath.row]
             cell.configure(with: post)
 
-            // ✅ Handle profile tap navigation
             cell.profileTapped = { [weak self] in
-                guard let self = self else { return }
-                let profileVC = ProfileViewController()
-                profileVC.hidesBottomBarWhenPushed = true
-
-                // ✅ Hide floating button while in profile
-                if let tabBarController = self.tabBarController as? CineMystTabBarController {
-                    tabBarController.setFloatingButtonVisible(false)
-                }
-
-                self.navigationController?.pushViewController(profileVC, animated: true)
+                self?.navigationController?.pushViewController(ProfileViewController(), animated: true)
             }
-
-            // ✅ Handle comment tap
             cell.commentTapped = { [weak self] in
-                guard let self = self else { return }
-                self.openComments(for: post)
+                self?.openComments(for: post)
             }
-
-            // ✅ Handle share tap
             cell.shareTapped = { [weak self] in
-                guard let self = self else { return }
-                self.openShareSheet(for: post)
+                self?.openShareSheet(for: post)
             }
 
-            return cell
-        } else {
-            let cell = tableView.dequeueReusableCell(withIdentifier: JobCardCell.reuseId, for: indexPath) as! JobCardCell
-            cell.configure(with: jobs[indexPath.row])
             return cell
         }
+
+        let cell = tableView.dequeueReusableCell(
+            withIdentifier: JobCardCell.reuseId,
+            for: indexPath) as! JobCardCell
+
+        cell.configure(with: jobs[indexPath.row])
+        return cell
     }
 
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         indexPath.section == 0 ? 440 : 180
-    }
-
-    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        section == 0 ? "Recent Posts" : "Casting Calls"
-    }
-
-    func tableView(_ tableView: UITableView, willDisplayHeaderView view: UIView, forSection section: Int) {
-        if let header = view as? UITableViewHeaderFooterView {
-            header.textLabel?.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
-            header.textLabel?.textColor = .label
-        }
     }
 }
