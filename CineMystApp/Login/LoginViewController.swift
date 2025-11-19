@@ -9,15 +9,14 @@ import UIKit
 
 class LoginViewController: UIViewController {
 
+    @IBOutlet weak var emailTextField: UITextField!
+    @IBOutlet weak var passwordTextField: UITextField!
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-
         // Do any additional setup after loading the view.
-    
-    
-    applyGradientBackground()
+        applyGradientBackground()
       }
       
       override func viewDidLayoutSubviews() {
@@ -55,7 +54,37 @@ class LoginViewController: UIViewController {
       }
     
     
-
+    
+    
+    
+    
+    @IBAction func signInButtonTapped(_ sender: UIButton) {
+    }
+    
+    
+    @IBAction func forgetPasswordButtonTapped(_ sender: UIButton) {
+    }
+    
+    @IBAction func signUpButtonTapped(_ sender: UIButton) {
+    }
+    
+    
+    
+    @IBAction func facebookLoginTapped(_ sender: UIButton) {
+    }
+    
+    
+    
+    @IBAction func instagramLoginTapped(_ sender: UIButton) {
+    }
+    
+    
+    @IBAction func appleLoginTapped(_ sender: UIButton) {
+    }
+    
+    
+    @IBAction func googleLoginTapped(_ sender: UIButton) {
+    }
     /*
     // MARK: - Navigation
 
