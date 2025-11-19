@@ -12,12 +12,22 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
 
-    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+    func scene(_ scene: UIScene,
+                   willConnectTo session: UISceneSession,
+               options connectionOptions: UIScene.ConnectionOptions) {
+        
         guard let windowScene = (scene as? UIWindowScene) else { return }
-
+        
         window = UIWindow(windowScene: windowScene)
-        let tabBarController = CineMystTabBarController()
-        window?.rootViewController = tabBarController
+        
+        // Load Login Screen FIRST
+        let loginVC = LoginViewController(nibName: "LoginViewController", bundle: nil)
+        
+        // Wrap in NavigationController (recommended)
+        let nav = UINavigationController(rootViewController: loginVC)
+        nav.navigationBar.isHidden = true  // hide nav bar on login screen
+        
+        window?.rootViewController = nav
         window?.makeKeyAndVisible()
     }
 
