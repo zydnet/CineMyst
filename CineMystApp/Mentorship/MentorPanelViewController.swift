@@ -89,13 +89,11 @@ final class MentorPanelViewController: UIViewController {
         cv.register(MentorCell.self, forCellWithReuseIdentifier: MentorCell.reuseIdentifier)
         cv.translatesAutoresizingMaskIntoConstraints = false
         cv.backgroundColor = .clear
-        // disable vertical scrolling because we will size the collection view to fit exactly one row
         cv.isScrollEnabled = false
         cv.alwaysBounceVertical = false
         return cv
     }()
 
-    // Data - only 2 mentors to show at once (one row of two cards)
     private var sessions: [Session] = []
     private var calls: [Call] = []
     private var mentors: [Mentor] = [
@@ -120,53 +118,12 @@ final class MentorPanelViewController: UIViewController {
         loadSampleCallsIfNeeded()
         updateSessionsLayout()
 
-        // ensure the segment initial state is applied
         segmentChanged(segmentControl)
 
         NotificationCenter.default.addObserver(self, selector: #selector(didReceiveSessionNotification(_:)), name: .sessionUpdated, object: nil)
 
-        // Hide back button / disable interactive pop so this panel behaves as a tab's root
         navigationItem.hidesBackButton = true
         navigationController?.interactivePopGestureRecognizer?.isEnabled = false
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        reloadSessions()
-
-        // Ensure this VC is the root of navigation stack to avoid showing a back button
-        if let nav = navigationController {
-            if nav.viewControllers.first != self {
-                nav.setViewControllers([self], animated: false)
-            }
-            nav.interactivePopGestureRecognizer?.isEnabled = false
-        }
-
-        // ensure tab bar is visible
-        tabBarController?.tabBar.isHidden = false
-    }
-
-    // adjust collection view height to exactly one row of items
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-
-        // compute the item height for one row with the current collection view width
-        guard let layout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout else { return }
-        let insets = layout.sectionInset.left + layout.sectionInset.right
-        let spacing = layout.minimumInteritemSpacing
-
-        // width for each item (2 columns)
-        let columnWidth = floor((collectionView.bounds.width - insets - spacing) / 2.0)
-        let itemHeight = columnWidth * 0.85
-
-        // total collectionView height = top inset + itemHeight + bottom inset
-        let totalHeight = layout.sectionInset.top + itemHeight + layout.sectionInset.bottom
-
-        collectionViewHeightConstraint.constant = ceil(totalHeight)
     }
 
     // MARK: - Setup
@@ -218,17 +175,14 @@ final class MentorPanelViewController: UIViewController {
             collectionView.topAnchor.constraint(equalTo: mentorsLabel.bottomAnchor, constant: 12),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
-            // bottom is not pinned because we'll set a fixed height to avoid scrolling
         ])
 
-        // height constraints
         sessionsTableHeightConstraint = sessionsTableView.heightAnchor.constraint(equalToConstant: 0)
         sessionsTableHeightConstraint.isActive = true
 
         collectionViewHeightConstraint = collectionView.heightAnchor.constraint(equalToConstant: 200)
         collectionViewHeightConstraint.isActive = true
 
-        // bottom spacing under collection ensures content doesn't run to the bottom edge
         let bottomGap = collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12)
         bottomGap.priority = .defaultLow
         bottomGap.isActive = true
@@ -246,7 +200,36 @@ final class MentorPanelViewController: UIViewController {
         mentorsSeeAllButton.addTarget(self, action: #selector(didTapMentorsSeeAll), for: .touchUpInside)
     }
 
-    // MARK: - Notifications / Data
+    // MARK: - Segment
+    @objc private func segmentChanged(_ s: UISegmentedControl) {
+        if s.selectedSegmentIndex == 0 {
+            sessionsTitleLabel.text = "My Session"
+        } else {
+            sessionsTitleLabel.text = "Calls"
+        }
+        updateSessionsLayout()
+    }
+
+    // MARK: - Navigation Actions
+    @objc private func didTapSessionsSeeAll() {
+        if segmentControl.selectedSegmentIndex == 0 {
+            let vc = MySessionViewController()
+            vc.hidesBottomBarWhenPushed = true
+            navigationController?.pushViewController(vc, animated: true)
+        } else {
+            let vc = AllCallsPanelViewController()
+            vc.hidesBottomBarWhenPushed = true
+            navigationController?.pushViewController(vc, animated: true)
+        }
+    }
+
+    @objc private func didTapMentorsSeeAll() {
+        let vc = AllMentorsViewController()
+        vc.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(vc, animated: true)
+    }
+
+    // MARK: - Table / Collection Updates
     @objc private func didReceiveSessionNotification(_ n: Notification) {
         reloadSessions()
     }
@@ -264,34 +247,6 @@ final class MentorPanelViewController: UIViewController {
         }
     }
 
-    @objc private func segmentChanged(_ s: UISegmentedControl) {
-        if s.selectedSegmentIndex == 0 {
-            sessionsTitleLabel.text = "My Session"
-        } else {
-            sessionsTitleLabel.text = "Calls"
-        }
-        updateSessionsLayout()
-    }
-
-    @objc private func didTapSessionsSeeAll() {
-        if segmentControl.selectedSegmentIndex == 0 {
-            let vc = UpcomingViewController()
-            vc.hidesBottomBarWhenPushed = true
-            navigationController?.pushViewController(vc, animated: true)
-        } else {
-            // <-- updated: push the AllCalls screen (use the panel controller we added earlier)
-            let vc = AllCallsPanelViewController() // if you want AllCallsViewController() instead, swap here
-            vc.hidesBottomBarWhenPushed = true
-            navigationController?.pushViewController(vc, animated: true)
-        }
-    }
-
-    @objc private func didTapMentorsSeeAll() {
-        let vc = AllMentorsViewController()
-        vc.hidesBottomBarWhenPushed = true
-        navigationController?.pushViewController(vc, animated: true)
-    }
-
     private func loadSampleCallsIfNeeded() {
         guard calls.isEmpty else { return }
         let calendar = Calendar.current
@@ -304,11 +259,13 @@ final class MentorPanelViewController: UIViewController {
 
 // MARK: - Table + Collection delegates
 extension MentorPanelViewController: UITableViewDataSource, UITableViewDelegate {
+
     func tableView(_ tv: UITableView, numberOfRowsInSection section: Int) -> Int {
         return segmentControl.selectedSegmentIndex == 0 ? sessions.count : calls.count
     }
 
     func tableView(_ tv: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+
         if segmentControl.selectedSegmentIndex == 0 {
             let cell = tv.dequeueReusableCell(withIdentifier: SessionCell.reuseIdentifier, for: indexPath) as! SessionCell
             cell.configure(with: sessions[indexPath.row])
@@ -320,6 +277,7 @@ extension MentorPanelViewController: UITableViewDataSource, UITableViewDelegate 
         }
     }
 
+    // ⭐⭐⭐ NEW UPDATED NAVIGATION ⭐⭐⭐
     func tableView(_ tv: UITableView, didSelectRowAt indexPath: IndexPath) {
         tv.deselectRow(at: indexPath, animated: true)
 
@@ -328,7 +286,7 @@ extension MentorPanelViewController: UITableViewDataSource, UITableViewDelegate 
             vc.session = sessions[indexPath.row]
             navigationController?.pushViewController(vc, animated: true)
         } else {
-            let vc = CallDetailViewController()
+            let vc = MentorSessionDetailViewController()
             vc.call = calls[indexPath.row]
             navigationController?.pushViewController(vc, animated: true)
         }
@@ -336,6 +294,7 @@ extension MentorPanelViewController: UITableViewDataSource, UITableViewDelegate 
 }
 
 extension MentorPanelViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+
     func collectionView(_ cv: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return mentors.count
     }
@@ -348,19 +307,24 @@ extension MentorPanelViewController: UICollectionViewDataSource, UICollectionVie
 
     func collectionView(_ cv: UICollectionView, layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
+
         guard let layout = collectionViewLayout as? UICollectionViewFlowLayout else {
             return CGSize(width: 160, height: 170)
         }
+
         let insets = layout.sectionInset.left + layout.sectionInset.right
         let spacing = layout.minimumInteritemSpacing
         let width = floor((cv.bounds.width - insets - spacing) / 2.0)
+
         return CGSize(width: width, height: width * 0.85)
     }
 
     func collectionView(_ cv: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+
         let vc = BookViewController()
         vc.mentor = mentors[indexPath.item]
         vc.hidesBottomBarWhenPushed = true
+
         navigationController?.pushViewController(vc, animated: true)
     }
 }

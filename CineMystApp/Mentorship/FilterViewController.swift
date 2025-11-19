@@ -2,7 +2,8 @@
 //  FilterViewController.swift
 //  CineMystApp
 //
-//  Programmatic filter UI: left tab list + right content area.
+//  Programmatic filter UI — bottom sheet style.
+//  Left tab list + right content area. Compact height, aligned rows.
 //  Returns chosen filters via completion closure.
 //
 
@@ -24,7 +25,8 @@ final class FilterViewController: UIViewController {
     var onApplyFilters: ((MentorFilters) -> Void)?
 
     // MARK: UI components
-    private let container = UIView()
+    private let backdrop = UIView()
+    private let sheet = UIView()
     private let leftMenu = UIStackView()
     private let contentContainer = UIView()
     private let bottomBar = UIView()
@@ -39,12 +41,12 @@ final class FilterViewController: UIViewController {
     // filter state
     private var filters = MentorFilters()
 
-    // static lists (you can replace with dynamic lists)
+    // static lists (replace with dynamic lists if needed)
     private let skillsList = ["Acting", "Modeling", "Theatre", "Voice Over", "Anchoring"]
     private let mentorRoles = ["Senior Actor", "Director", "Freelancer", "Dubber"]
     private let experienceOptions = ["1 Year+", "2 Year+", "3 Year+"]
 
-    // views for content (kept as properties to easily update)
+    // views for content
     private let skillsStack = UIStackView()
     private let mentorRoleStack = UIStackView()
     private let experienceStack = UIStackView()
@@ -91,16 +93,28 @@ final class FilterViewController: UIViewController {
         buildLeftMenu()
         buildContentViews()
         updateContentForSelectedTab()
+        animateSheetUp()
     }
 
     private func setupAppearance() {
-        view.backgroundColor = UIColor(white: 0, alpha: 0.35) // dim behind
+        view.backgroundColor = .clear
         modalPresentationStyle = .overFullScreen
 
-        container.backgroundColor = .systemBackground
-        container.layer.cornerRadius = 12
-        container.translatesAutoresizingMaskIntoConstraints = false
+        // backdrop dim
+        backdrop.backgroundColor = UIColor(white: 0, alpha: 0.35)
+        backdrop.alpha = 0.0
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        let tap = UITapGestureRecognizer(target: self, action: #selector(dismissTappedOutside))
+        backdrop.addGestureRecognizer(tap)
 
+        // sheet (rounded top corners only)
+        sheet.backgroundColor = .systemBackground
+        sheet.layer.cornerRadius = 16
+        sheet.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner] // top corners
+        sheet.layer.masksToBounds = true
+        sheet.translatesAutoresizingMaskIntoConstraints = false
+
+        // left menu styling
         leftMenu.axis = .vertical
         leftMenu.alignment = .fill
         leftMenu.distribution = .fillEqually
@@ -109,21 +123,25 @@ final class FilterViewController: UIViewController {
 
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
 
+        // bottom bar
         bottomBar.translatesAutoresizingMaskIntoConstraints = false
-        bottomBar.backgroundColor = .clear
+        bottomBar.backgroundColor = UIColor.systemGray6
 
+        // Clear button
         clearButton.setTitle("Clear", for: .normal)
         clearButton.setTitleColor(.label, for: .normal)
-        clearButton.layer.cornerRadius = 10
+        clearButton.layer.cornerRadius = 12
         clearButton.layer.borderWidth = 1
         clearButton.layer.borderColor = UIColor.systemGray4.cgColor
+        clearButton.backgroundColor = .clear
         clearButton.translatesAutoresizingMaskIntoConstraints = false
         clearButton.addTarget(self, action: #selector(clearTapped), for: .touchUpInside)
 
+        // Show Results button - keep black filled (user asked neutral / not purple)
         var cfg = UIButton.Configuration.filled()
-        cfg.title = "Show Results"
         cfg.cornerStyle = .capsule
-        cfg.baseBackgroundColor = UIColor(red: 0x43/255, green: 0x16/255, blue: 0x31/255, alpha: 1)
+        cfg.title = "Show Results"
+        cfg.baseBackgroundColor = .black
         cfg.baseForegroundColor = .white
         showResultsButton.configuration = cfg
         showResultsButton.translatesAutoresizingMaskIntoConstraints = false
@@ -131,65 +149,99 @@ final class FilterViewController: UIViewController {
     }
 
     private func setupHierarchy() {
-        view.addSubview(container)
-        container.addSubview(leftMenu)
-        container.addSubview(contentContainer)
-        container.addSubview(bottomBar)
+        view.addSubview(backdrop)
+        view.addSubview(sheet)
+        sheet.addSubview(leftMenu)
+        sheet.addSubview(contentContainer)
+        sheet.addSubview(bottomBar)
 
         bottomBar.addSubview(clearButton)
         bottomBar.addSubview(showResultsButton)
-    }
 
-    private func setupConstraints() {
-        // center container, but keep it narrow like a right panel
+        // small drag indicator
+        let indicator = UIView()
+        indicator.translatesAutoresizingMaskIntoConstraints = false
+        indicator.backgroundColor = UIColor.systemGray3
+        indicator.layer.cornerRadius = 3
+        sheet.addSubview(indicator)
         NSLayoutConstraint.activate([
-            container.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            container.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            container.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 0.88),
-            container.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.78),
-
-            leftMenu.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            leftMenu.topAnchor.constraint(equalTo: container.topAnchor),
-            leftMenu.bottomAnchor.constraint(equalTo: bottomBar.topAnchor),
-            leftMenu.widthAnchor.constraint(equalToConstant: 120),
-
-            contentContainer.leadingAnchor.constraint(equalTo: leftMenu.trailingAnchor),
-            contentContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            contentContainer.topAnchor.constraint(equalTo: container.topAnchor),
-            contentContainer.bottomAnchor.constraint(equalTo: bottomBar.topAnchor),
-
-            bottomBar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            bottomBar.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            bottomBar.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            bottomBar.heightAnchor.constraint(equalToConstant: 76),
-
-            clearButton.leadingAnchor.constraint(equalTo: bottomBar.leadingAnchor, constant: 16),
-            clearButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
-            clearButton.widthAnchor.constraint(equalToConstant: 110),
-            clearButton.heightAnchor.constraint(equalToConstant: 40),
-
-            showResultsButton.trailingAnchor.constraint(equalTo: bottomBar.trailingAnchor, constant: -16),
-            showResultsButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
-            showResultsButton.widthAnchor.constraint(equalToConstant: 140),
-            showResultsButton.heightAnchor.constraint(equalToConstant: 44)
+            indicator.topAnchor.constraint(equalTo: sheet.topAnchor, constant: 8),
+            indicator.centerXAnchor.constraint(equalTo: sheet.centerXAnchor),
+            indicator.widthAnchor.constraint(equalToConstant: 60),
+            indicator.heightAnchor.constraint(equalToConstant: 6)
         ])
     }
 
+    private var sheetBottomConstraint: NSLayoutConstraint!
+    private var sheetHeightConstraint: NSLayoutConstraint!
+
+    private func setupConstraints() {
+        NSLayoutConstraint.activate([
+            backdrop.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            backdrop.topAnchor.constraint(equalTo: view.topAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        // Sheet: full width, anchored at bottom, with shorter height to be "compact"
+        // We'll use 0.52 of the screen height so it's shorter (user asked to make it less tall)
+        sheetBottomConstraint = sheet.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: 600) // start offscreen; animated later
+        sheetBottomConstraint.isActive = true
+        sheet.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
+        sheet.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
+        sheetHeightConstraint = sheet.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.52)
+        sheetHeightConstraint.isActive = true
+
+        // left menu width fixed
+        NSLayoutConstraint.activate([
+            leftMenu.leadingAnchor.constraint(equalTo: sheet.leadingAnchor),
+            leftMenu.topAnchor.constraint(equalTo: sheet.topAnchor, constant: 24), // leave space for drag indicator
+            leftMenu.bottomAnchor.constraint(equalTo: bottomBar.topAnchor),
+            leftMenu.widthAnchor.constraint(equalToConstant: 120)
+        ])
+
+        NSLayoutConstraint.activate([
+            contentContainer.leadingAnchor.constraint(equalTo: leftMenu.trailingAnchor),
+            contentContainer.trailingAnchor.constraint(equalTo: sheet.trailingAnchor),
+            contentContainer.topAnchor.constraint(equalTo: sheet.topAnchor, constant: 24),
+            contentContainer.bottomAnchor.constraint(equalTo: bottomBar.topAnchor)
+        ])
+
+        // bottom bar pinned to bottom of sheet and full width (this bleeds to screen edge because sheet spans full width)
+        NSLayoutConstraint.activate([
+            bottomBar.leadingAnchor.constraint(equalTo: sheet.leadingAnchor),
+            bottomBar.trailingAnchor.constraint(equalTo: sheet.trailingAnchor),
+            bottomBar.bottomAnchor.constraint(equalTo: sheet.bottomAnchor),
+            bottomBar.heightAnchor.constraint(equalToConstant: 84) // roomy for buttons and safe area
+        ])
+
+        // buttons inside bottomBar
+        NSLayoutConstraint.activate([
+            clearButton.leadingAnchor.constraint(equalTo: bottomBar.leadingAnchor, constant: 16),
+            clearButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            clearButton.widthAnchor.constraint(equalToConstant: 110),
+            clearButton.heightAnchor.constraint(equalToConstant: 44),
+
+            showResultsButton.trailingAnchor.constraint(equalTo: bottomBar.trailingAnchor, constant: -16),
+            showResultsButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            showResultsButton.widthAnchor.constraint(equalToConstant: 170),
+            showResultsButton.heightAnchor.constraint(equalToConstant: 48)
+        ])
+    }
+
+    // Build left menu buttons
     private func buildLeftMenu() {
         for i in 0...3 {
             guard let t = Tab(rawValue: i) else { continue }
             let b = UIButton(type: .system)
             b.setTitle(t.title, for: .normal)
-            b.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+            b.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
             b.setTitleColor(.label, for: .normal)
             b.contentHorizontalAlignment = .left
             b.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
             b.tag = i
-            b.addTarget(self, action: #selector(leftMenuTapped(_:)), for: .touchUpInside)
-
-            // small left background highlight for selected
             b.backgroundColor = (t == selectedTab) ? UIColor.systemGray6 : .clear
-
+            b.addTarget(self, action: #selector(leftMenuTapped(_:)), for: .touchUpInside)
             leftMenu.addArrangedSubview(b)
         }
     }
@@ -197,15 +249,17 @@ final class FilterViewController: UIViewController {
     private func rebuildLeftMenuSelection() {
         for case let b as UIButton in leftMenu.arrangedSubviews {
             b.backgroundColor = (b.tag == selectedTab.rawValue) ? UIColor.systemGray6 : .clear
+            // keep font color default (no purple). Selected tab will appear on gray background.
+            b.setTitleColor(.label, for: .normal)
         }
     }
 
     // Build each content view once
     private func buildContentViews() {
-        // Skills: vertical stack with toggle buttons (multi-select)
+        // Skills stack: vertical list of checkbox rows
         skillsStack.axis = .vertical
-        skillsStack.spacing = 12
-        skillsStack.alignment = .leading
+        skillsStack.spacing = 14
+        skillsStack.alignment = .fill
         skillsStack.translatesAutoresizingMaskIntoConstraints = false
 
         for s in skillsList {
@@ -213,10 +267,10 @@ final class FilterViewController: UIViewController {
             skillsStack.addArrangedSubview(row)
         }
 
-        // Mentor role: radio style (single select)
+        // Mentor role: radio list (single select)
         mentorRoleStack.axis = .vertical
-        mentorRoleStack.spacing = 12
-        mentorRoleStack.alignment = .leading
+        mentorRoleStack.spacing = 14
+        mentorRoleStack.alignment = .fill
         mentorRoleStack.translatesAutoresizingMaskIntoConstraints = false
 
         for r in mentorRoles {
@@ -224,10 +278,10 @@ final class FilterViewController: UIViewController {
             mentorRoleStack.addArrangedSubview(row)
         }
 
-        // Experience: radio style
+        // Experience: radio list
         experienceStack.axis = .vertical
-        experienceStack.spacing = 12
-        experienceStack.alignment = .leading
+        experienceStack.spacing = 14
+        experienceStack.alignment = .fill
         experienceStack.translatesAutoresizingMaskIntoConstraints = false
 
         for e in experienceOptions {
@@ -235,16 +289,15 @@ final class FilterViewController: UIViewController {
             experienceStack.addArrangedSubview(row)
         }
 
-        // Price: two text fields arranged horizontally
+        // Price: two text fields horizontally
         priceStack.axis = .horizontal
         priceStack.spacing = 12
         priceStack.alignment = .center
         priceStack.translatesAutoresizingMaskIntoConstraints = false
         priceStack.addArrangedSubview(priceMinField)
         priceStack.addArrangedSubview(priceMaxField)
-
-        priceMinField.widthAnchor.constraint(equalToConstant: 100).isActive = true
-        priceMaxField.widthAnchor.constraint(equalToConstant: 100).isActive = true
+        priceMinField.widthAnchor.constraint(equalToConstant: 110).isActive = true
+        priceMaxField.widthAnchor.constraint(equalToConstant: 110).isActive = true
     }
 
     // MARK: - Content swapping
@@ -285,35 +338,44 @@ final class FilterViewController: UIViewController {
         }
     }
 
-    // MARK: - Controls factory
+    // MARK: - Controls factory (aligned rows)
+
+    /// Creates a checkbox row where the checkbox and label are vertically centered and aligned.
     private func makeCheckboxRow(title: String) -> UIControl {
         let container = UIControl()
         container.translatesAutoresizingMaskIntoConstraints = false
+
+        // Checkbox button (square)
+        let checkbox = UIButton(type: .system)
+        checkbox.setImage(UIImage(systemName: "square"), for: .normal)
+        checkbox.tintColor = .label
+        checkbox.translatesAutoresizingMaskIntoConstraints = false
+        checkbox.widthAnchor.constraint(equalToConstant: 26).isActive = true
+        checkbox.heightAnchor.constraint(equalToConstant: 26).isActive = true
+        checkbox.addTarget(self, action: #selector(skillCheckboxTapped(_:)), for: .touchUpInside)
+        checkbox.accessibilityLabel = title
+
+        // Label
         let label = UILabel()
         label.text = title
-        label.font = UIFont.systemFont(ofSize: 15)
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.textColor = .label
         label.translatesAutoresizingMaskIntoConstraints = false
 
-        let btn = UIButton(type: .system)
-        btn.setImage(UIImage(systemName: "square"), for: .normal)
-        btn.tintColor = .label
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        btn.addTarget(self, action: #selector(skillCheckboxTapped(_:)), for: .touchUpInside)
-        btn.accessibilityLabel = title
+        // Stack to keep them aligned
+        let hStack = UIStackView(arrangedSubviews: [checkbox, label])
+        hStack.axis = .horizontal
+        hStack.alignment = .center
+        hStack.spacing = 16
+        hStack.translatesAutoresizingMaskIntoConstraints = false
 
-        container.addSubview(btn)
-        container.addSubview(label)
+        container.addSubview(hStack)
 
         NSLayoutConstraint.activate([
-            btn.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            btn.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            btn.widthAnchor.constraint(equalToConstant: 28),
-            btn.heightAnchor.constraint(equalToConstant: 28),
-
-            label.leadingAnchor.constraint(equalTo: btn.trailingAnchor, constant: 12),
-            label.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            label.topAnchor.constraint(equalTo: container.topAnchor),
-            label.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            hStack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            hStack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor),
+            hStack.topAnchor.constraint(equalTo: container.topAnchor, constant: 6),
+            hStack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -6)
         ])
 
         return container
@@ -323,37 +385,38 @@ final class FilterViewController: UIViewController {
     private func makeRadioRow(title: String, group: RadioGroup) -> UIControl {
         let container = UIControl()
         container.translatesAutoresizingMaskIntoConstraints = false
+
+        let circle = UIButton(type: .system)
+        circle.setImage(UIImage(systemName: "circle"), for: .normal)
+        circle.tintColor = .label
+        circle.translatesAutoresizingMaskIntoConstraints = false
+        circle.widthAnchor.constraint(equalToConstant: 26).isActive = true
+        circle.heightAnchor.constraint(equalToConstant: 26).isActive = true
+        circle.tag = (group == .mentorRole) ? 0 : 1
+        circle.accessibilityValue = title
+        circle.addTarget(self, action: #selector(radioTapped(_:)), for: .touchUpInside)
+
         let label = UILabel()
         label.text = title
-        label.font = UIFont.systemFont(ofSize: 15)
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.textColor = .label
         label.translatesAutoresizingMaskIntoConstraints = false
 
-        let btn = UIButton(type: .system)
-        btn.setImage(UIImage(systemName: "circle"), for: .normal)
-        btn.tintColor = .label
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        btn.addTarget(self, action: #selector(radioTapped(_:)), for: .touchUpInside)
-        btn.accessibilityLabel = title
-        // use tag to identify group: 0 for mentorRole, 1 for experience. We'll encode index as accessibilityValue.
-        btn.tag = (group == .mentorRole) ? 0 : 1
+        let hStack = UIStackView(arrangedSubviews: [circle, label])
+        hStack.axis = .horizontal
+        hStack.alignment = .center
+        hStack.spacing = 16
+        hStack.translatesAutoresizingMaskIntoConstraints = false
 
-        container.addSubview(btn)
-        container.addSubview(label)
+        container.addSubview(hStack)
 
         NSLayoutConstraint.activate([
-            btn.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            btn.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            btn.widthAnchor.constraint(equalToConstant: 28),
-            btn.heightAnchor.constraint(equalToConstant: 28),
-
-            label.leadingAnchor.constraint(equalTo: btn.trailingAnchor, constant: 12),
-            label.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            label.topAnchor.constraint(equalTo: container.topAnchor),
-            label.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            hStack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            hStack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor),
+            hStack.topAnchor.constraint(equalTo: container.topAnchor, constant: 6),
+            hStack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -6)
         ])
 
-        // store title in accessibilityValue so we can read it back in handler
-        btn.accessibilityValue = title
         return container
     }
 
@@ -376,20 +439,18 @@ final class FilterViewController: UIViewController {
     @objc private func radioTapped(_ sender: UIButton) {
         guard let title = sender.accessibilityValue else { return }
         if sender.tag == 0 {
-            // mentorRole group
-            // clear previous visuals
+            // mentorRole group: clear visuals first
             for case let ctrl as UIControl in mentorRoleStack.arrangedSubviews {
-                if let b = ctrl.subviews.compactMap({ $0 as? UIButton }).first {
+                if let b = ctrl.subviews.compactMap({ $0 as? UIStackView }).first?.arrangedSubviews.first as? UIButton {
                     b.setImage(UIImage(systemName: "circle"), for: .normal)
                 }
             }
-            // set this one
             sender.setImage(UIImage(systemName: "largecircle.fill.circle"), for: .normal)
             filters.mentorRole = title
         } else {
             // experience group
             for case let ctrl as UIControl in experienceStack.arrangedSubviews {
-                if let b = ctrl.subviews.compactMap({ $0 as? UIButton }).first {
+                if let b = ctrl.subviews.compactMap({ $0 as? UIStackView }).first?.arrangedSubviews.first as? UIButton {
                     b.setImage(UIImage(systemName: "circle"), for: .normal)
                 }
             }
@@ -400,22 +461,25 @@ final class FilterViewController: UIViewController {
 
     @objc private func clearTapped() {
         filters = MentorFilters()
-        // reset UI: uncheck checkboxes + radios + price fields
+
+        // reset checkboxes
         for case let ctrl as UIControl in skillsStack.arrangedSubviews {
-            if let b = ctrl.subviews.compactMap({ $0 as? UIButton }).first {
+            if let b = ctrl.subviews.compactMap({ $0 as? UIStackView }).first?.arrangedSubviews.first as? UIButton {
                 b.setImage(UIImage(systemName: "square"), for: .normal)
             }
         }
+        // reset radios
         for case let ctrl as UIControl in mentorRoleStack.arrangedSubviews {
-            if let b = ctrl.subviews.compactMap({ $0 as? UIButton }).first {
+            if let b = ctrl.subviews.compactMap({ $0 as? UIStackView }).first?.arrangedSubviews.first as? UIButton {
                 b.setImage(UIImage(systemName: "circle"), for: .normal)
             }
         }
         for case let ctrl as UIControl in experienceStack.arrangedSubviews {
-            if let b = ctrl.subviews.compactMap({ $0 as? UIButton }).first {
+            if let b = ctrl.subviews.compactMap({ $0 as? UIStackView }).first?.arrangedSubviews.first as? UIButton {
                 b.setImage(UIImage(systemName: "circle"), for: .normal)
             }
         }
+
         priceMinField.text = ""
         priceMaxField.text = ""
     }
@@ -433,17 +497,46 @@ final class FilterViewController: UIViewController {
             filters.priceMax = nil
         }
 
-        dismiss(animated: true) {
+        dismissAnimated {
             self.onApplyFilters?(self.filters)
         }
     }
 
-    // allow tapping outside to dismiss
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let t = touches.first else { return }
-        let loc = t.location(in: view)
-        if !container.frame.contains(loc) {
-            dismiss(animated: true, completion: nil)
+    // MARK: - Dismiss / animations
+    @objc private func dismissTappedOutside() {
+        dismissAnimated()
+    }
+
+    private func animateSheetUp() {
+        // show backdrop
+        UIView.animate(withDuration: 0.25) {
+            self.backdrop.alpha = 1.0
         }
+
+        // animate sheet from bottom into position
+        self.sheetBottomConstraint.constant = 0
+        UIView.animate(withDuration: 0.35,
+                       delay: 0,
+                       usingSpringWithDamping: 0.86,
+                       initialSpringVelocity: 0.9,
+                       options: [.curveEaseOut],
+                       animations: {
+            self.view.layoutIfNeeded()
+        }, completion: nil)
+    }
+
+    private func dismissAnimated(completion: (() -> Void)? = nil) {
+        // fade backdrop
+        UIView.animate(withDuration: 0.22) {
+            self.backdrop.alpha = 0.0
+        }
+
+        // slide sheet down
+        self.sheetBottomConstraint.constant = 600
+        UIView.animate(withDuration: 0.25, animations: {
+            self.view.layoutIfNeeded()
+        }, completion: { _ in
+            self.dismiss(animated: false, completion: completion)
+        })
     }
 }

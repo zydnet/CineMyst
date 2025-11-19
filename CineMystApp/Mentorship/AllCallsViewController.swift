@@ -260,7 +260,7 @@ final class CallItemCell: UITableViewCell {
     }
 }
 
-// MARK: - AllCallsPanelViewController (unique name)
+// MARK: - AllCallsPanelViewController (unique)
 final class AllCallsPanelViewController: UIViewController {
 
     // MARK: UI
@@ -392,28 +392,28 @@ final class AllCallsPanelViewController: UIViewController {
                      mentorRole: "Junior Artist",
                      date: cal.date(byAdding: .day, value: 2, to: Date()) ?? Date(),
                      services: ["Acting", "Voice Over"],
-                     avatarName: nil,
+                     avatarName: "Image",     // ← USE YOUR ASSET NAMED "Image"
                      status: .upcoming),
             CallItem(id: "2",
                      mentorName: "Amit Sawi",
                      mentorRole: "Junior Artist",
                      date: cal.date(byAdding: .day, value: -3, to: Date()) ?? Date(),
                      services: ["Acting", "Voice Over"],
-                     avatarName: nil,
+                     avatarName: "Image",     // ← USE YOUR ASSET NAMED "Image"
                      status: .ended),
             CallItem(id: "3",
                      mentorName: "Amit Sawi",
                      mentorRole: "Junior Artist",
                      date: cal.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
                      services: ["Acting"],
-                     avatarName: nil,
+                     avatarName: "Image",     // ← USE YOUR ASSET NAMED "Image"
                      status: .canceled),
             CallItem(id: "4",
                      mentorName: "Amit Sawi",
                      mentorRole: "Junior Artist",
                      date: cal.date(byAdding: .day, value: -7, to: Date()) ?? Date(),
                      services: ["Voice Over"],
-                     avatarName: nil,
+                     avatarName: "Image",     // ← USE YOUR ASSET NAMED "Image"
                      status: .ended)
         ]
     }
