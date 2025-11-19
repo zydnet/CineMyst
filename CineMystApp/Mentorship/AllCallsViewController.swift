@@ -321,6 +321,9 @@ final class AllCallsPanelViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
 
+        // Keep this too — safe if this VC is pushed from elsewhere
+        self.hidesBottomBarWhenPushed = true
+
         navigationItem.largeTitleDisplayMode = .never
         navigationItem.backButtonDisplayMode = .default
 
@@ -332,6 +335,23 @@ final class AllCallsPanelViewController: UIViewController {
 
         loadSampleData()
         applyFilterForSelectedSegment()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        // Hide the tab bar while this screen is visible
+        tabBarController?.tabBar.isHidden = true
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+
+        // Restore the tab bar only when this VC is being removed from its parent (popped/dismissed).
+        // Do not restore if only pushing another controller (pushed VCs typically set hidesBottomBarWhenPushed = true).
+        if isMovingFromParent || isBeingDismissed {
+            tabBarController?.tabBar.isHidden = false
+        }
     }
 
     private func setupHierarchy() {
@@ -446,6 +466,8 @@ extension AllCallsPanelViewController: UITableViewDataSource, UITableViewDelegat
         let call = displayedCalls[indexPath.row]
         let vc = CallItemDetailViewController()
         vc.call = call
+        // ensure pushed detail also hides bottom bar
+        vc.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(vc, animated: true)
     }
 
@@ -458,6 +480,10 @@ final class CallItemDetailViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        // keep this here as well (harmless if already handled)
+        self.hidesBottomBarWhenPushed = true
+
         view.backgroundColor = .systemBackground
         title = "Call"
 

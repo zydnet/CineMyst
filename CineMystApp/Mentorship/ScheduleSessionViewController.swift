@@ -2,10 +2,7 @@
 //  ScheduleSessionViewController.swift
 //  CineMystApp
 //
-//  Updated: compact "Choose Date" header + modal date sheet.
-//  Time slots are added to the stack only after the user picks a date — no phantom space.
-//  Fixed: tightened picker sheet layout so the toolbar sits directly under the grabber
-//         (removed large gap caused by pinning toolbar to safeArea on the sheet).
+//  Updated: picker sheet toolbar aligned directly under grabber (no large gap).
 //
 
 import UIKit
@@ -61,7 +58,7 @@ final class ScheduleSessionViewController: UIViewController {
         let b = UIButton(type: .system)
         b.contentHorizontalAlignment = .left
         b.tintColor = .label
-        b.titleLabel?.font = .systemFont(ofSize: 18, weight: .semibold)
+        b.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         b.setTitleColor(.label, for: .normal)
         b.addTarget(self, action: #selector(presentDatePickerSheet), for: .touchUpInside)
         b.translatesAutoresizingMaskIntoConstraints = false
@@ -275,34 +272,32 @@ final class ScheduleSessionViewController: UIViewController {
         // DatePicker
         let picker = UIDatePicker()
         picker.datePickerMode = .date
-        if #available(iOS 13.4, *) { picker.preferredDatePickerStyle = .wheels } // change to .inline if you prefer
+        if #available(iOS 13.4, *) { picker.preferredDatePickerStyle = .wheels } // or .inline if you prefer
         picker.minimumDate = Date()
-        // if user already chose a date, show it; otherwise default to today
         picker.date = selectedDate ?? Date()
         picker.translatesAutoresizingMaskIntoConstraints = false
 
         // Toolbar with Cancel / Done
         let toolbar = UIToolbar()
         toolbar.translatesAutoresizingMaskIntoConstraints = false
-        let cancel = UIBarButtonItem(title: "Cancel", style: .plain, target: nil, action: nil)
+        // keep toolbar non-translucent so it visually matches sheet background
+        toolbar.isTranslucent = false
+
+        let cancel = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(didCancelDatePicker(_:)))
         let flexible = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let done = UIBarButtonItem(title: "Done", style: .done, target: nil, action: nil)
-
-        cancel.target = self
-        cancel.action = #selector(didCancelDatePicker(_:))
-        done.target = self
-        done.action = #selector(didFinishDatePicker(_:))
-
+        let done = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(didFinishDatePicker(_:)))
         toolbar.setItems([cancel, flexible, done], animated: false)
 
         // Attach subviews
         pickerVC.view.addSubview(toolbar)
         pickerVC.view.addSubview(picker)
 
-        // ❗️ FIXED CONSTRAINTS: pin toolbar and picker to view.top / view.bottom so they sit
-        // directly under the sheet grabber (avoids large gap caused by safeArea on the sheet).
+        // Layout:
+        // Pin toolbar directly to the view's top with a very small inset so it sits visually under the grabber.
+        // Pin picker under the toolbar to fill the sheet.
         NSLayoutConstraint.activate([
-            toolbar.topAnchor.constraint(equalTo: pickerVC.view.topAnchor),
+            // small top constant ensures toolbar sits snug under the grabber on most devices/detents
+            toolbar.topAnchor.constraint(equalTo: pickerVC.view.topAnchor, constant: 6),
             toolbar.leadingAnchor.constraint(equalTo: pickerVC.view.leadingAnchor),
             toolbar.trailingAnchor.constraint(equalTo: pickerVC.view.trailingAnchor),
 
@@ -313,7 +308,6 @@ final class ScheduleSessionViewController: UIViewController {
         ])
 
         // Keep a reference to the picker so Done/Cancel handlers can access it easily.
-        pickerVC.view.tag = 999 // marker
         objc_setAssociatedObject(pickerVC, &AssociatedKeys.pickerKey, picker, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 
         // present as sheet (iOS 15+ deterministic detents)
@@ -325,6 +319,7 @@ final class ScheduleSessionViewController: UIViewController {
 
         present(pickerVC, animated: true, completion: nil)
     }
+
 
     // Cancel tapped: just dismiss
     @objc private func didCancelDatePicker(_ sender: Any) {
@@ -519,7 +514,7 @@ final class ScheduleSessionViewController: UIViewController {
             headerChevron.widthAnchor.constraint(equalToConstant: 14)
         ])
 
-        // Add a tap recognizer to headerRow as a fallback
+        // Add a tap recognizer to headerRow as a fallback and increase hit area
         let headerTap = UITapGestureRecognizer(target: self, action: #selector(presentDatePickerSheet))
         headerRow.addGestureRecognizer(headerTap)
 
