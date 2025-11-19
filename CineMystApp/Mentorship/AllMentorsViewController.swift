@@ -384,6 +384,22 @@ final class AllMentorsViewController: UIViewController {
         tableView.reloadData()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // 🔥 Hide the tab bar whenever this screen is visible
+        tabBarController?.tabBar.isHidden = true
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+
+        // Restore the tab bar only when this VC is being removed from its parent (popped/dismissed).
+        // Do not restore if only pushing another controller (pushed vcs typically set hidesBottomBarWhenPushed = true).
+        if isMovingFromParent || isBeingDismissed {
+            tabBarController?.tabBar.isHidden = false
+        }
+    }
+
     // MARK: - Segment handling
     @objc private func segmentChanged(_ s: UISegmentedControl) {
         switch s.selectedSegmentIndex {

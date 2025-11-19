@@ -529,7 +529,7 @@ final class PostBookingMentorshipViewController: UIViewController {
         // Push different VC depending on which segment is active
         if segmentControl.selectedSegmentIndex == 0 {
             // Mentee -> show Upcoming/My Sessions (existing)
-            let vc = UpcomingViewController()
+            let vc = MySessionViewController()
             vc.hidesBottomBarWhenPushed = true
             navigationController?.pushViewController(vc, animated: true)
         } else {
