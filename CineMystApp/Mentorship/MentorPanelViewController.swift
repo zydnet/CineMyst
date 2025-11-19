@@ -94,7 +94,12 @@ final class MentorPanelViewController: UIViewController {
         return cv
     }()
 
+<<<<<<< HEAD
     private var sessions: [Session] = []
+=======
+    // Data - only 2 mentors to show at once (one row of two cards)
+    private var sessions: [SessionM] = []
+>>>>>>> main
     private var calls: [Call] = []
     private var mentors: [Mentor] = [
         Mentor(name: "Nathan Hales", role: "Actor", rating: 4.9, imageName: "Image"),
