@@ -115,7 +115,7 @@ struct MenuActionButton: View {
                 .frame(width: 56, height: 56)
                 .background(
                     LinearGradient(
-                        colors: [Color.blue.opacity(0.8), Color.blue],
+                        colors: [Color.accentColor.opacity(0.8), Color.accentColor],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
