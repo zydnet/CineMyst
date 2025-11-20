@@ -1,5 +1,5 @@
 import UIKit
-
+//main first job screen 
 class JobCardView: UIView {
     
     private let profileImageView = UIImageView()
@@ -16,9 +16,16 @@ class JobCardView: UIView {
     private let appliedLabel = UILabel()
     private let applyButton = UIButton(type: .system)
     
+    var onTap: (() -> Void)?
+    var onApplyTap: (() -> Void)?
+    var onBookmarkTap: (() -> Void)?
+
+
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
+        setupTapGesture()
     }
     
     required init?(coder: NSCoder) {
@@ -44,7 +51,23 @@ class JobCardView: UIView {
         tagLabel.text = "• \(tag)"
         appliedLabel.text = appliedCount
     }
+
     
+    // MARK: - Add Tap Gesture
+    private func setupTapGesture() {
+        let tap = UITapGestureRecognizer(target: self, action: #selector(cardTapped))
+        self.addGestureRecognizer(tap)
+        self.isUserInteractionEnabled = true
+    }
+    
+    @objc private func cardTapped() {
+        onTap?()    // 👈 triggers navigation
+    }
+    @objc private func applyTapped() {
+        onApplyTap?()
+    }
+    
+    // MARK: - UI Setup
     private func setupUI() {
         backgroundColor = .white
         layer.cornerRadius = 16
@@ -53,21 +76,17 @@ class JobCardView: UIView {
         layer.shadowRadius = 6
         layer.shadowOffset = CGSize(width: 0, height: 3)
         
-        // MARK: Profile Image
         profileImageView.layer.cornerRadius = 22
         profileImageView.layer.masksToBounds = true
         profileImageView.contentMode = .scaleAspectFill
         profileImageView.backgroundColor = .systemGray5
         profileImageView.translatesAutoresizingMaskIntoConstraints = false
         
-        // MARK: Title
         titleLabel.font = UIFont.boldSystemFont(ofSize: 15)
         titleLabel.numberOfLines = 2
         
-        // MARK: Company Tag — fixed width issue (now hugs content)
         companyTagLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
         companyTagLabel.textColor = UIColor(red: 113/255, green: 30/255, blue: 96/255, alpha: 1)
-        companyTagLabel.backgroundColor = .clear
         companyTagLabel.textAlignment = .center
         
         companyTagContainer.backgroundColor = UIColor.systemGray6
@@ -84,13 +103,14 @@ class JobCardView: UIView {
             companyTagContainer.heightAnchor.constraint(equalToConstant: 26)
         ])
         
-        // MARK: Bookmark
         bookmarkButton.setImage(UIImage(systemName: "bookmark"), for: .normal)
         bookmarkButton.tintColor = .black
+        bookmarkButton.addTarget(self, action: #selector(bookmarkTapped), for: .touchUpInside)
+
         
-        // MARK: Info Row
         locationIcon.tintColor = .gray
         clockIcon.tintColor = .gray
+        
         [locationIcon, clockIcon].forEach { $0.contentMode = .scaleAspectFit }
         
         locationLabel.font = UIFont.systemFont(ofSize: 13)
@@ -102,7 +122,6 @@ class JobCardView: UIView {
         daysLeftLabel.font = UIFont.systemFont(ofSize: 13)
         daysLeftLabel.textColor = .darkGray
         
-        // MARK: Tag & Applied
         tagLabel.font = UIFont.systemFont(ofSize: 13)
         tagLabel.textColor = .darkGray
         tagLabel.backgroundColor = UIColor.systemGray6
@@ -116,14 +135,17 @@ class JobCardView: UIView {
         appliedLabel.textColor = .darkGray
         appliedLabel.textAlignment = .right
         
-        // MARK: Apply Button
         applyButton.setTitle("Apply Now", for: .normal)
         applyButton.backgroundColor = UIColor(red: 47/255, green: 9/255, blue: 32/255, alpha: 1)
         applyButton.setTitleColor(.white, for: .normal)
         applyButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 15)
         applyButton.layer.cornerRadius = 10
         
-        // MARK: Layout Structure
+        applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
+        
+       
+
+        
         let topRow = UIStackView(arrangedSubviews: [profileImageView, titleLabel, bookmarkButton])
         topRow.axis = .horizontal
         topRow.spacing = 10
@@ -174,5 +196,13 @@ class JobCardView: UIView {
         stack.spacing = 4
         return stack
     }
+    @objc private func bookmarkTapped() {
+        onBookmarkTap?()
+    }
+    func updateBookmark(isBookmarked: Bool) {
+        let icon = isBookmarked ? "bookmark.fill" : "bookmark"
+        bookmarkButton.setImage(UIImage(systemName: icon), for: .normal)
+    }
+
 }
 

@@ -2,213 +2,333 @@
 //  ProfileInfoViewController.swift
 //  CineMystApp
 //
-//  Created by user@55 on 13/11/25.
-//
 
 import UIKit
 
 class ProfileInfoViewController: UIViewController {
-    
-    // MARK: - UI Elements
+
     private let scrollView = UIScrollView()
     private let contentView = UIView()
+
+    // Selection data sources
+    private let companyTypes = ["Production Company", "Post-Production", "Studio", "Network", "Independent", "Freelance"]
+    private let experienceYears = ["0-2 years", "3-5 years", "6-10 years", "11-15 years", "16-20 years", "20+ years"]
+    private let contractTypes = ["Full-time employee", "Part-time employee", "Freelance/Contract", "Project Based", "Day Rate", "Weekly Rate"]
+    private let budgetRanges = ["Under ₹ 500/day", "₹ 500-₹ 1000/day", "₹ 1000-₹ 2000/day", "₹ 2000-₹ 3500/day", "₹ 3500-₹ 5000/day", "₹ 5000+/day"]
     
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Profile Information"
-        label.font = UIFont.boldSystemFont(ofSize: 22)
-        label.textColor = UIColor(red: 67/255, green: 0, blue: 34/255, alpha: 1) // deep maroon
-        label.textAlignment = .center
-        return label
-    }()
-    
-    private func sectionLabel(_ text: String) -> UILabel {
+    // Store selected values
+    private var selectedCompanyType: String?
+    private var selectedExperience: String?
+    private var selectedContract: String?
+    private var selectedBudget: String?
+
+    private func sectionHeader(_ text: String) -> UILabel {
         let label = UILabel()
         label.text = text.uppercased()
-        label.font = UIFont.boldSystemFont(ofSize: 14)
-        label.textColor = .darkGray
+        label.font = UIFont.boldSystemFont(ofSize: 13)
+        label.textColor = UIColor.darkGray.withAlphaComponent(0.85)
         return label
     }
-    
-    private func textField(title: String, placeholder: String) -> UIStackView {
+
+    private func inputField(title: String, placeholder: String) -> UIView {
+        let container = UIView()
+
         let titleLabel = UILabel()
         titleLabel.text = title
         titleLabel.font = UIFont.systemFont(ofSize: 14)
         titleLabel.textColor = .darkGray
-        
+
         let tf = UITextField()
         tf.placeholder = placeholder
         tf.backgroundColor = UIColor.systemGray6
         tf.layer.cornerRadius = 8
-        tf.setLeftPaddingPoints(10)
-        tf.heightAnchor.constraint(equalToConstant: 40).isActive = true
-        
+        tf.setPaddingLeft(12)
+        tf.heightAnchor.constraint(equalToConstant: 44).isActive = true
+
         let stack = UIStackView(arrangedSubviews: [titleLabel, tf])
         stack.axis = .vertical
-        stack.spacing = 4
-        return stack
+        stack.spacing = 6
+
+        container.addSubview(stack)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+
+        return container
     }
-    
-    private func selectionRow(title: String, value: String) -> UIView {
+
+    private func selectionCell(title: String, value: String, tag: Int) -> UIView {
         let container = UIView()
         container.backgroundColor = UIColor.systemGray6
         container.layer.cornerRadius = 8
-        
-        let label = UILabel()
-        label.text = title
-        label.font = UIFont.systemFont(ofSize: 14)
-        label.textColor = .darkGray
-        
+        container.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        container.tag = tag
+
+        let titleLabel = UILabel()
+        titleLabel.text = title
+        titleLabel.font = UIFont.systemFont(ofSize: 14)
+        titleLabel.textColor = .darkGray
+
         let valueLabel = UILabel()
         valueLabel.text = value
         valueLabel.font = UIFont.systemFont(ofSize: 14)
         valueLabel.textColor = .gray
-        
+        valueLabel.tag = 100 // Tag to identify value label
+
         let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
         chevron.tintColor = .gray
-        
-        let inner = UIStackView(arrangedSubviews: [label, UIView(), valueLabel, chevron])
-        inner.axis = .horizontal
-        inner.spacing = 6
-        inner.alignment = .center
-        container.addSubview(inner)
-        
-        inner.translatesAutoresizingMaskIntoConstraints = false
+
+        let row = UIStackView(arrangedSubviews: [titleLabel, UIView(), valueLabel, chevron])
+        row.axis = .horizontal
+        row.alignment = .center
+
+        container.addSubview(row)
+        row.translatesAutoresizingMaskIntoConstraints = false
+
         NSLayoutConstraint.activate([
-            inner.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
-            inner.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
-            inner.topAnchor.constraint(equalTo: container.topAnchor, constant: 8),
-            inner.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -8)
+            row.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            row.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            row.topAnchor.constraint(equalTo: container.topAnchor),
+            row.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
-        
+
+        // Add tap gesture
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(selectionCellTapped(_:)))
+        container.addGestureRecognizer(tapGesture)
+
         return container
     }
-    
-    private func tagGroup(tags: [String]) -> UIStackView {
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.spacing = 8
-        stack.alignment = .center
-        stack.distribution = .fillProportionally
+
+    @objc private func selectionCellTapped(_ sender: UITapGestureRecognizer) {
+        guard let tag = sender.view?.tag else { return }
         
-        for tag in tags {
-            let label = UILabel()
-            label.text = tag
-            label.font = UIFont.systemFont(ofSize: 13)
-            label.textColor = .darkGray
-            label.backgroundColor = UIColor.systemGray5
-            label.layer.cornerRadius = 14
-            label.clipsToBounds = true
-            label.textAlignment = .center
-            label.setContentHuggingPriority(.required, for: .horizontal)
-            label.translatesAutoresizingMaskIntoConstraints = false
-            label.heightAnchor.constraint(equalToConstant: 28).isActive = true
-            label.widthAnchor.constraint(greaterThanOrEqualToConstant: 60).isActive = true
-            stack.addArrangedSubview(label)
+        var title = ""
+        var options: [String] = []
+        
+        switch tag {
+        case 1:
+            title = "Company Type"
+            options = companyTypes
+        case 2:
+            title = "Years of Experience"
+            options = experienceYears
+        case 3:
+            title = "Preferred Contract"
+            options = contractTypes
+        case 4:
+            title = "Budget Range"
+            options = budgetRanges
+        default:
+            return
         }
-        return stack
+        
+        showBottomPicker(title: title, options: options, tag: tag)
     }
-    
+
+    private func showBottomPicker(title: String, options: [String], tag: Int) {
+        let pickerVC = BottomPickerViewController(title: title, options: options) { [weak self] selectedOption in
+            self?.updateSelection(tag: tag, value: selectedOption)
+        }
+        
+        pickerVC.modalPresentationStyle = .pageSheet
+        if let sheet = pickerVC.sheetPresentationController {
+            sheet.detents = [.medium()]
+            sheet.prefersGrabberVisible = true
+        }
+        
+        present(pickerVC, animated: true)
+    }
+
+    private func updateSelection(tag: Int, value: String) {
+        // Find the container view and update its value label
+        guard let container = view.viewWithTag(tag),
+              let valueLabel = container.subviews.first?.subviews.compactMap({ $0 as? UIStackView }).first?.arrangedSubviews.compactMap({ $0 as? UILabel }).first(where: { $0.tag == 100 }) else {
+            return
+        }
+        
+        valueLabel.text = value
+        valueLabel.textColor = .darkGray
+        
+        // Store the selected value
+        switch tag {
+        case 1: selectedCompanyType = value
+        case 2: selectedExperience = value
+        case 3: selectedContract = value
+        case 4: selectedBudget = value
+        default: break
+        }
+    }
+
     private let verificationCard: UIView = {
         let card = UIView()
         card.backgroundColor = UIColor.systemGray6
-        card.layer.cornerRadius = 12
-        
+        card.layer.cornerRadius = 14
+        card.clipsToBounds = true
+
         let icon = UIImageView(image: UIImage(systemName: "shield.fill"))
         icon.tintColor = .darkGray
-        icon.contentMode = .scaleAspectFit
-        
+
         let title = UILabel()
         title.text = "Professional Verification"
         title.font = UIFont.boldSystemFont(ofSize: 15)
-        
+
         let desc = UILabel()
-        desc.text = "Your profile will be reviewed for verification. Verified profiles get priority visibility and build trust with talent. This helps maintain our community’s professional standards."
+        desc.text = "Your profile will be reviewed for verification. Verified profiles get priority visibility and build trust with talent. This helps maintain our community's professional standards."
         desc.font = UIFont.systemFont(ofSize: 13)
-        desc.textColor = .gray
         desc.numberOfLines = 0
-        
+        desc.textColor = .gray
+
         let bullet = UILabel()
-        bullet.text = "• Review typically takes 24-48 hours"
+        bullet.text = "• Review typically takes 24–48 hours"
         bullet.font = UIFont.systemFont(ofSize: 13)
         bullet.textColor = .gray
-        
-        let stack = UIStackView(arrangedSubviews: [title, desc, bullet])
-        stack.axis = .vertical
-        stack.spacing = 4
-        
+
+        let textStack = UIStackView(arrangedSubviews: [title, desc, bullet])
+        textStack.axis = .vertical
+        textStack.spacing = 4
+
         card.addSubview(icon)
-        card.addSubview(stack)
-        
+        card.addSubview(textStack)
+
         icon.translatesAutoresizingMaskIntoConstraints = false
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        
+        textStack.translatesAutoresizingMaskIntoConstraints = false
+
         NSLayoutConstraint.activate([
-            icon.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 12),
-            icon.topAnchor.constraint(equalTo: card.topAnchor, constant: 12),
-            icon.widthAnchor.constraint(equalToConstant: 30),
-            icon.heightAnchor.constraint(equalToConstant: 30),
-            
-            stack.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 12),
-            stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -12),
-            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 8),
-            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -12)
+            icon.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
+            icon.topAnchor.constraint(equalTo: card.topAnchor, constant: 14),
+            icon.widthAnchor.constraint(equalToConstant: 32),
+            icon.heightAnchor.constraint(equalToConstant: 32),
+
+            textStack.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 12),
+            textStack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
+            textStack.topAnchor.constraint(equalTo: card.topAnchor, constant: 10),
+            textStack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -14)
         ])
+
         return card
     }()
-    
+
     private let nextButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setTitle("Next  →", for: .normal)
-        btn.setTitleColor(.white, for: .normal)
-        btn.titleLabel?.font = UIFont.boldSystemFont(ofSize: 16)
-        btn.backgroundColor = UIColor(red: 67/255, green: 0, blue: 34/255, alpha: 1)
-        btn.layer.cornerRadius = 10
-        btn.heightAnchor.constraint(equalToConstant: 48).isActive = true
-        return btn
+        let b = UIButton(type: .system)
+        b.setTitle("Next   →", for: .normal)
+        b.setTitleColor(.white, for: .normal)
+        b.titleLabel?.font = UIFont.boldSystemFont(ofSize: 16)
+        b.backgroundColor = UIColor(red: 67/255, green: 0, blue: 34/255, alpha: 1)
+        b.layer.cornerRadius = 12
+        b.heightAnchor.constraint(equalToConstant: 52).isActive = true
+        return b
     }()
-    
-    // MARK: - Actions
-    @objc private func nextButtonTapped() {
-        let postJobVC = PostJobViewController()
-        navigationController?.pushViewController(postJobVC, animated: true)
-    }
 
     private let skipButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setTitle("Skip for now", for: .normal)
-        btn.setTitleColor(.gray, for: .normal)
-        btn.titleLabel?.font = UIFont.systemFont(ofSize: 14)
-        return btn
+        let b = UIButton(type: .system)
+        b.setTitle("Skip for now", for: .normal)
+        b.setTitleColor(.gray, for: .normal)
+        b.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+        return b
     }()
-    
-    // MARK: - Lifecycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
-        setupScrollView()
-        setupLayout()
-        nextButton.addTarget(self, action: #selector(nextButtonTapped), for: .touchUpInside)
+        view.backgroundColor = .white
+        
+        // Setup navigation bar
+        title = "Profile Information"
+        navigationController?.navigationBar.titleTextAttributes = [
+            .foregroundColor: UIColor(red: 67/255, green: 0/255, blue: 34/255, alpha: 1),
+            .font: UIFont.boldSystemFont(ofSize: 18)
+        ]
+        
+        setupScroll()
+        buildLayout()
+        nextButton.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
     }
-    
-    // MARK: - Layout
-    private func setupScrollView() {
+    override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+
+            // Hide tab bar only
+            tabBarController?.tabBar.isHidden = true
+
+            // If you also have a floating button on your custom TabBarController,
+            // you'll need to hide/show it here as well. Example:
+            // (Assuming your tabBar controller has a `floatingButton` property)
+            //
+            // if let tb = tabBarController as? CineMystTabBarController {
+            //     tb.setFloatingButton(hidden: true)
+            // }
+        }
+    override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+
+            // Restore tab bar only
+            tabBarController?.tabBar.isHidden = false
+
+            // Restore floating button if you hid it above:
+            // if let tb = tabBarController as? CineMystTabBarController {
+            //     tb.setFloatingButton(hidden: false)
+            // }
+        }
+
+    @objc private func nextTapped() {
+        let vc = PostJobViewController()
+        navigationController?.pushViewController(vc, animated: true)
+    }
+
+    func makeHorizontalTagRow(_ tags: [String]) -> UIView {
+        let scroll = UIScrollView()
+        scroll.showsHorizontalScrollIndicator = false
+
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 16
+        stack.alignment = .center
+
+        scroll.addSubview(stack)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: scroll.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: scroll.bottomAnchor),
+            stack.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: scroll.trailingAnchor),
+            stack.heightAnchor.constraint(equalTo: scroll.heightAnchor)
+        ])
+
+        tags.forEach { text in
+            let pill = UILabel()
+            pill.text = "  \(text)     "
+            pill.font = UIFont.systemFont(ofSize: 12)
+            pill.textAlignment = .center
+            pill.backgroundColor = UIColor(white: 0.92, alpha: 1.0)
+            pill.textColor = .black
+            pill.layer.cornerRadius = 18
+            pill.clipsToBounds = true
+
+            pill.heightAnchor.constraint(equalToConstant: 36).isActive = true
+
+            stack.addArrangedSubview(pill)
+        }
+
+        scroll.heightAnchor.constraint(equalToConstant: 40).isActive = true
+        return scroll
+    }
+
+    private func setupScroll() {
         view.addSubview(scrollView)
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentView)
         contentView.translatesAutoresizingMaskIntoConstraints = false
-        
-        contentView.addSubview(nextButton)
-        nextButton.translatesAutoresizingMaskIntoConstraints = false
 
-       
-        
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            
+
             contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
@@ -216,63 +336,225 @@ class ProfileInfoViewController: UIViewController {
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor)
         ])
     }
+
+    private func buildLayout() {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 24
+
+        contentView.addSubview(stack)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40)
+        ])
+
+        stack.addArrangedSubview(sectionHeader("Basic Information"))
+        stack.addArrangedSubview(inputField(title: "Professional Title *", placeholder: "e.g. Producer, Production Manager, Studio"))
+
+        stack.addArrangedSubview(sectionHeader("Company Details"))
+        stack.addArrangedSubview(inputField(title: "Production House *", placeholder: "Your production company name"))
+        stack.addArrangedSubview(selectionCell(title: "Company Type", value: "Select company", tag: 1))
+        stack.addArrangedSubview(selectionCell(title: "Years of Experience", value: "Select experience", tag: 2))
+
+        stack.addArrangedSubview(sectionHeader("Location and Reach"))
+        stack.addArrangedSubview(inputField(title: "Primary Location *", placeholder: "Your production company name"))
+        stack.addArrangedSubview(selectionCell(title: "Additional Locations", value: "Select company", tag: 5))
+
+        stack.addArrangedSubview(sectionHeader("Professional Expertise"))
+
+        let specLabel = UILabel()
+        specLabel.text = "Specializations"
+        specLabel.font = UIFont.boldSystemFont(ofSize: 18)
+        stack.addArrangedSubview(specLabel)
+
+        let specRow = makeHorizontalTagRow(["Feature Films", "TV Series", "Commercials", "Documentary"])
+        stack.addArrangedSubview(specRow)
+
+        let unionLabel = UILabel()
+        unionLabel.text = "Union Affiliations"
+        unionLabel.font = UIFont.boldSystemFont(ofSize: 14)
+        stack.addArrangedSubview(unionLabel)
+
+        let unionRow = makeHorizontalTagRow(["DGA", "PGA", "CSA", "IATSE", "WGA"])
+        stack.addArrangedSubview(unionRow)
+
+        stack.addArrangedSubview(sectionHeader("Professional Links"))
+        stack.addArrangedSubview(inputField(title: "Website/Portfolio", placeholder: "https://your-website.com"))
+        stack.addArrangedSubview(inputField(title: "IMDb Profile", placeholder: "https://imdb.com/name/..."))
+        stack.addArrangedSubview(selectionCell(title: "Preferred Contract", value: "Select contract", tag: 3))
+        stack.addArrangedSubview(selectionCell(title: "Budget Range", value: "Select budget range", tag: 4))
+
+        stack.addArrangedSubview(verificationCard)
+        stack.addArrangedSubview(nextButton)
+        stack.addArrangedSubview(skipButton)
+    }
+}
+
+// MARK: - Bottom Picker View Controller
+class BottomPickerViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     
-    private func setupLayout() {
-        let mainStack = UIStackView()
-        mainStack.axis = .vertical
-        mainStack.spacing = 20
-        mainStack.alignment = .fill
+    private let pickerTitle: String
+    private let options: [String]
+    private let onSelection: (String) -> Void
+    
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.boldSystemFont(ofSize: 18)
+        label.textAlignment = .center
+        return label
+    }()
+    
+    private let cancelButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Cancel", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 17)
+        return button
+    }()
+    
+    private let doneButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Done", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 17)
+        button.setTitleColor(UIColor.systemBlue, for: .normal)
+        return button
+    }()
+    
+    private let tableView: UITableView = {
+        let table = UITableView(frame: .zero, style: .plain)
+        table.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        table.rowHeight = 50
+        return table
+    }()
+    
+    private var selectedIndex: Int?
+    
+    init(title: String, options: [String], onSelection: @escaping (String) -> Void) {
+        self.pickerTitle = title
+        self.options = options
+        self.onSelection = onSelection
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .white
         
-        contentView.addSubview(titleLabel)
-        contentView.addSubview(mainStack)
+        titleLabel.text = pickerTitle
+        
+        setupViews()
+        
+        cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
+        doneButton.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
+        
+        tableView.delegate = self
+        tableView.dataSource = self
+    }
+    
+    private func setupViews() {
+        let headerView = UIView()
+        headerView.backgroundColor = .white
+        
+        headerView.addSubview(cancelButton)
+        headerView.addSubview(titleLabel)
+        headerView.addSubview(doneButton)
+        
+        view.addSubview(headerView)
+        view.addSubview(tableView)
+        
+        headerView.translatesAutoresizingMaskIntoConstraints = false
+        cancelButton.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        mainStack.translatesAutoresizingMaskIntoConstraints = false
+        doneButton.translatesAutoresizingMaskIntoConstraints = false
+        tableView.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
-            titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            headerView.topAnchor.constraint(equalTo: view.topAnchor),
+            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            headerView.heightAnchor.constraint(equalToConstant: 60),
             
-            mainStack.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
-            mainStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            mainStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            mainStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40)
+            cancelButton.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 16),
+            cancelButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            
+            titleLabel.centerXAnchor.constraint(equalTo: headerView.centerXAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            
+            doneButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
+            doneButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+            
+            tableView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
         
-        // --- Add Sections ---
-        mainStack.addArrangedSubview(sectionLabel("Basic Information"))
-        mainStack.addArrangedSubview(textField(title: "Professional Title *", placeholder: "e.g. Producer, Production Manager, Studio"))
+        // Add separator line
+        let separator = UIView()
+        separator.backgroundColor = UIColor.separator
+        headerView.addSubview(separator)
+        separator.translatesAutoresizingMaskIntoConstraints = false
         
-        mainStack.addArrangedSubview(sectionLabel("Company Details"))
-        mainStack.addArrangedSubview(textField(title: "Production House *", placeholder: "Your production company name"))
-        mainStack.addArrangedSubview(selectionRow(title: "Company Type", value: "Select company"))
-        mainStack.addArrangedSubview(selectionRow(title: "Years of Experience", value: "Select experience"))
+        NSLayoutConstraint.activate([
+            separator.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
+            separator.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
+            separator.bottomAnchor.constraint(equalTo: headerView.bottomAnchor),
+            separator.heightAnchor.constraint(equalToConstant: 0.5)
+        ])
+    }
+    
+    @objc private func cancelTapped() {
+        dismiss(animated: true)
+    }
+    
+    @objc private func doneTapped() {
+        if let index = selectedIndex {
+            onSelection(options[index])
+        }
+        dismiss(animated: true)
+    }
+    
+    // MARK: - TableView DataSource
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return options.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        cell.textLabel?.text = options[indexPath.row]
+        cell.textLabel?.font = UIFont.systemFont(ofSize: 17)
+        cell.selectionStyle = .none
         
-        mainStack.addArrangedSubview(sectionLabel("Location and Reach"))
-        mainStack.addArrangedSubview(textField(title: "Primary Location *", placeholder: "Your production company name"))
-        mainStack.addArrangedSubview(selectionRow(title: "Additional Locations", value: "Select company"))
+        if indexPath.row == selectedIndex {
+            cell.accessoryType = .checkmark
+        } else {
+            cell.accessoryType = .none
+        }
         
-        mainStack.addArrangedSubview(sectionLabel("Professional Expertise"))
-        mainStack.addArrangedSubview(tagGroup(tags: ["Feature Films", "TV Series", "Commercials", "Documentary"]))
-        mainStack.addArrangedSubview(tagGroup(tags: ["DGA", "PGA", "CSA", "IATSE", "WGA"]))
-        
-        mainStack.addArrangedSubview(sectionLabel("Professional Links"))
-        mainStack.addArrangedSubview(textField(title: "Website/Portfolio", placeholder: "https://your-website.com"))
-        mainStack.addArrangedSubview(textField(title: "IMDb Profile", placeholder: "https://imdb.com/name/..."))
-        mainStack.addArrangedSubview(selectionRow(title: "Preferred Contract", value: "Select contract"))
-        mainStack.addArrangedSubview(selectionRow(title: "Budget Range", value: "Select budget range"))
-        
-        mainStack.addArrangedSubview(verificationCard)
-        mainStack.addArrangedSubview(nextButton)
-        mainStack.addArrangedSubview(skipButton)
+        return cell
+    }
+    
+    // MARK: - TableView Delegate
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        selectedIndex = indexPath.row
+        tableView.reloadData()
     }
 }
 
-// MARK: - Padding Extension
+// MARK: - TextField Padding Extension
 extension UITextField {
     func setPaddingLeft(_ amount: CGFloat) {
-        let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: amount, height: self.frame.height))
-        self.leftView = paddingView
-        self.leftViewMode = .always
+        let padding = UIView(frame: CGRect(x: 0, y: 0, width: amount, height: 44))
+        leftView = padding
+        leftViewMode = .always
     }
-}
+    
 
+}
