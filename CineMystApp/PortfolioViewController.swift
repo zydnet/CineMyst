@@ -11,6 +11,17 @@ final class PortfolioViewController: UIViewController {
 
     private var collectionView: UICollectionView!
 
+    // MARK: - Back Button
+    private let backButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        btn.tintColor = .white
+        btn.backgroundColor = UIColor(white: 0.15, alpha: 1)
+        btn.layer.cornerRadius = 18
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        return btn
+    }()
+
     // MARK: - Dummy Data
     private let portfolioData = PortfolioData(
         name: "Nitanshi Goel",
@@ -47,7 +58,7 @@ final class PortfolioViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationController?.navigationBar.barStyle = .black
+        navigationController?.navigationBar.isHidden = true
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -57,20 +68,25 @@ final class PortfolioViewController: UIViewController {
     // MARK: - UI Setup
     private func setupView() {
         view.backgroundColor = .black
-        navigationItem.title = ""
-        navigationController?.navigationBar.tintColor = .white
         navigationController?.navigationBar.isHidden = true
 
-        // Extend black background behind status bar
-        if #available(iOS 13.0, *) {
-            if let statusBarFrame = UIApplication.shared.windows.first?.windowScene?.statusBarManager?.statusBarFrame {
-                let statusBarView = UIView(frame: statusBarFrame)
-                statusBarView.backgroundColor = .black
-                view.addSubview(statusBarView)
-            }
-        }
+        // Add Back Button
+        view.addSubview(backButton)
+        backButton.addTarget(self, action: #selector(handleBack), for: .touchUpInside)
+
+        NSLayoutConstraint.activate([
+            backButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            backButton.widthAnchor.constraint(equalToConstant: 36),
+            backButton.heightAnchor.constraint(equalToConstant: 36),
+        ])
     }
 
+    @objc private func handleBack() {
+        navigationController?.popViewController(animated: true)
+    }
+
+    // MARK: - CollectionView Setup
     private func setupCollectionView() {
         let layout = UICollectionViewCompositionalLayout { section, _ -> NSCollectionLayoutSection? in
             switch section {
@@ -89,18 +105,20 @@ final class PortfolioViewController: UIViewController {
         collectionView.alwaysBounceVertical = true
         collectionView.showsVerticalScrollIndicator = false
 
-        // Register all cells
+        // Register cells
         collectionView.register(PortfolioHeaderCell.self, forCellWithReuseIdentifier: PortfolioHeaderCell.reuseId)
         collectionView.register(WorkshopCell.self, forCellWithReuseIdentifier: WorkshopCell.reuseId)
         collectionView.register(FilmCell.self, forCellWithReuseIdentifier: FilmCell.reuseId)
         collectionView.register(GalleryCell.self, forCellWithReuseIdentifier: GalleryCell.reuseId)
 
         view.addSubview(collectionView)
+        view.bringSubviewToFront(backButton)  // ensures back button stays on top
     }
 }
 
 // MARK: - Data Source & Delegate
 extension PortfolioViewController: UICollectionViewDataSource, UICollectionViewDelegate {
+
     func numberOfSections(in collectionView: UICollectionView) -> Int { 4 }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -115,23 +133,36 @@ extension PortfolioViewController: UICollectionViewDataSource, UICollectionViewD
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         switch indexPath.section {
+
         case 0:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: PortfolioHeaderCell.reuseId, for: indexPath) as! PortfolioHeaderCell
+            let cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: PortfolioHeaderCell.reuseId,
+                for: indexPath
+            ) as! PortfolioHeaderCell
             cell.configure(with: portfolioData)
             return cell
 
         case 1:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: WorkshopCell.reuseId, for: indexPath) as! WorkshopCell
+            let cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: WorkshopCell.reuseId,
+                for: indexPath
+            ) as! WorkshopCell
             cell.configure(with: portfolioData.workshops[indexPath.row])
             return cell
 
         case 2:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: FilmCell.reuseId, for: indexPath) as! FilmCell
+            let cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: FilmCell.reuseId,
+                for: indexPath
+            ) as! FilmCell
             cell.configure(with: portfolioData.films[indexPath.row])
             return cell
 
         case 3:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: GalleryCell.reuseId, for: indexPath) as! GalleryCell
+            let cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: GalleryCell.reuseId,
+                for: indexPath
+            ) as! GalleryCell
             cell.configure(imageName: galleryImages[indexPath.row])
             return cell
 
