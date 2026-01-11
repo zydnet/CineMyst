@@ -27,23 +27,33 @@ class RoleDetailsViewController: UIViewController {
     private var selectedCastingTypes: Set<String> = []
     private var castingRadiusTextField: UITextField?
     
-    // Button references for selection tracking
-    private var employmentButtons: [UIButton] = []
-    private var careerStageButtons: [UIButton] = []
-    private var experienceButtons: [UIButton] = []
+    // Pickers for dropdowns
+    private var employmentPicker: UIPickerView?
+    private var careerStagePicker: UIPickerView?
+    private var experiencePicker: UIPickerView?
+    
+    private var employmentTextField: UITextField?
+    private var careerStageTextField: UITextField?
+    private var experienceTextField: UITextField?
+    
+    // Dropdown options
+    private let employmentOptionsArtist = ["Freelancer", "Agency-Represented", "In-House / Full-time", "Project-based", "Student / Recent Graduate"]
+    private let employmentOptionsCasting = ["Freelancer", "Agency-Represented", "In-House / Full-time", "Project-based"]
+    private let careerStageOptions = ["Beginner", "Intermediate", "Pro", "Student"]
+    private let experienceOptions = ["0", "1-2", "3-5", "5+"]
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .white
+        view.backgroundColor = .systemGroupedBackground
         
-        // Configure header based on role
         let title = coordinator?.profileData.role == .artist ?
             "Tell us about yourself" :
             "Tell us about your work"
         headerView.configure(title: title, currentStep: 3)
         
         setupScrollView()
-        navigationItem.hidesBackButton = true
+        setupBackButton()
+        navigationItem.hidesBackButton = false
         
         if coordinator?.profileData.role == .artist {
             setupArtistForm()
@@ -53,6 +63,21 @@ class RoleDetailsViewController: UIViewController {
         
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         view.addGestureRecognizer(tap)
+    }
+    
+    private func setupBackButton() {
+        let backButton = UIBarButtonItem(
+            image: UIImage(systemName: "chevron.left"),
+            style: .plain,
+            target: self,
+            action: #selector(backTapped)
+        )
+        backButton.tintColor = .label
+        navigationItem.leftBarButtonItem = backButton
+    }
+    
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
     }
     
     @objc private func dismissKeyboard() {
@@ -90,184 +115,212 @@ class RoleDetailsViewController: UIViewController {
     private func setupArtistForm() {
         let stackView = UIStackView()
         stackView.axis = .vertical
-        stackView.spacing = 24
+        stackView.spacing = 20
         stackView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(stackView)
         
-        // Employment Status
-        stackView.addArrangedSubview(createLabel(text: "Employment Status", fontSize: 18, weight: .semibold))
-        let employmentOptions = ["Freelancer", "Agency-Represented", "In-House / Full-time", "Project-based", "Student / Recent Graduate"]
-        for option in employmentOptions {
-            let button = createOptionButton(title: option)
-            button.addTarget(self, action: #selector(employmentStatusSelected(_:)), for: .touchUpInside)
-            stackView.addArrangedSubview(button)
-            employmentButtons.append(button)
-        }
+        // Employment Status (Dropdown)
+        stackView.addArrangedSubview(createLabel(text: "Employment Status *", fontSize: 16, weight: .semibold))
+        let employmentField = createDropdownField(placeholder: "Select employment status", options: employmentOptionsArtist, tag: 0)
+        employmentTextField = employmentField
+        stackView.addArrangedSubview(employmentField)
         
-        // Primary Roles
-        stackView.addArrangedSubview(createLabel(text: "Primary Roles", fontSize: 18, weight: .semibold))
-        let rolesChipView = createChipSelectionView(options: ["Actor", "Dancer", "Singer", "Model", "Voice Artist"], isMultiSelect: true)
+        stackView.addArrangedSubview(createSpacer(height: 8))
+        
+        // Primary Roles (Multi-select chips)
+        stackView.addArrangedSubview(createLabel(text: "Primary Roles *", fontSize: 16, weight: .semibold))
+        stackView.addArrangedSubview(createLabel(text: "Select all that apply", fontSize: 13, weight: .regular, color: .secondaryLabel))
+        let rolesChipView = createChipSelectionView(options: ["Actor", "Dancer", "Singer", "Model", "Voice Artist"], isMultiSelect: true, tag: 1)
         stackView.addArrangedSubview(rolesChipView)
         
-        // Career Stage
-        stackView.addArrangedSubview(createLabel(text: "Career Stage", fontSize: 18, weight: .semibold))
-        let careerStageOptions = ["Beginner", "Intermediate", "Pro", "Student"]
-        for option in careerStageOptions {
-            let button = createOptionButton(title: option)
-            button.addTarget(self, action: #selector(careerStageSelected(_:)), for: .touchUpInside)
-            stackView.addArrangedSubview(button)
-            careerStageButtons.append(button)
-        }
+        stackView.addArrangedSubview(createSpacer(height: 8))
         
-        // Experience
-        stackView.addArrangedSubview(createLabel(text: "Experience", fontSize: 18, weight: .semibold))
-        let experienceOptions = ["0", "1-2", "3-5", "5+"]
-        for option in experienceOptions {
-            let button = createOptionButton(title: option + " years")
-            button.tag = experienceOptions.firstIndex(of: option) ?? 0
-            button.addTarget(self, action: #selector(experienceSelected(_:)), for: .touchUpInside)
-            stackView.addArrangedSubview(button)
-            experienceButtons.append(button)
-        }
+        // Career Stage (Dropdown)
+        stackView.addArrangedSubview(createLabel(text: "Career Stage *", fontSize: 16, weight: .semibold))
+        let careerField = createDropdownField(placeholder: "Select career stage", options: careerStageOptions, tag: 1)
+        careerStageTextField = careerField
+        stackView.addArrangedSubview(careerField)
+        
+        stackView.addArrangedSubview(createSpacer(height: 8))
+        
+        // Experience (Dropdown)
+        stackView.addArrangedSubview(createLabel(text: "Years of Experience *", fontSize: 16, weight: .semibold))
+        let expField = createDropdownField(placeholder: "Select experience", options: experienceOptions.map { $0 + " years" }, tag: 2)
+        experienceTextField = expField
+        stackView.addArrangedSubview(expField)
+        
+        stackView.addArrangedSubview(createSpacer(height: 8))
         
         // Travel Willingness
         let travelSwitch = UISwitch()
-        travelSwitch.addTarget(self, action: #selector(travelSwitchChanged(_:)), for: .valueChanged)
+        travelSwitch.isOn = false
         self.travelWillingSwitch = travelSwitch
-        let travelContainer = createSwitchRow(label: "Willing to travel", switchControl: travelSwitch)
+        let travelContainer = createSwitchRow(label: "Willing to travel for work", switchControl: travelSwitch)
         stackView.addArrangedSubview(travelContainer)
+        
+        stackView.addArrangedSubview(createSpacer(height: 24))
         
         // Next Button
         let nextButton = createNextButton()
         stackView.addArrangedSubview(nextButton)
         
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
+            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
             stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20)
+            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40)
         ])
     }
     
     private func setupCastingProfessionalForm() {
         let stackView = UIStackView()
         stackView.axis = .vertical
-        stackView.spacing = 24
+        stackView.spacing = 20
         stackView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(stackView)
         
-        // Employment Status
-        stackView.addArrangedSubview(createLabel(text: "Employment Status", fontSize: 18, weight: .semibold))
-        let employmentOptions = ["Freelancer", "Agency-Represented", "In-House / Full-time", "Project-based"]
-        for option in employmentOptions {
-            let button = createOptionButton(title: option)
-            button.addTarget(self, action: #selector(employmentStatusSelected(_:)), for: .touchUpInside)
-            stackView.addArrangedSubview(button)
-            employmentButtons.append(button)
-        }
+        // Employment Status (Dropdown)
+        stackView.addArrangedSubview(createLabel(text: "Employment Status *", fontSize: 16, weight: .semibold))
+        let employmentField = createDropdownField(placeholder: "Select employment status", options: employmentOptionsCasting, tag: 0)
+        employmentTextField = employmentField
+        stackView.addArrangedSubview(employmentField)
+        
+        stackView.addArrangedSubview(createSpacer(height: 8))
         
         // Specific Role
-        stackView.addArrangedSubview(createLabel(text: "Specific Role", fontSize: 18, weight: .semibold))
-        let roleTextField = createTextField(placeholder: "Director / Assistant / Producer / Agency")
+        stackView.addArrangedSubview(createLabel(text: "Your Role *", fontSize: 16, weight: .semibold))
+        let roleTextField = createTextField(placeholder: "e.g., Casting Director, Assistant, Producer")
         self.specificRoleTextField = roleTextField
         stackView.addArrangedSubview(roleTextField)
         
+        stackView.addArrangedSubview(createSpacer(height: 8))
+        
         // Company Name
-        stackView.addArrangedSubview(createLabel(text: "Company / Production Name", fontSize: 18, weight: .semibold))
-        let companyTextField = createTextField(placeholder: "Enter company name")
+        stackView.addArrangedSubview(createLabel(text: "Company / Production Name *", fontSize: 16, weight: .semibold))
+        let companyTextField = createTextField(placeholder: "Enter company or production house name")
         self.companyNameTextField = companyTextField
         stackView.addArrangedSubview(companyTextField)
         
-        // Casting Types
-        stackView.addArrangedSubview(createLabel(text: "Casting Types", fontSize: 18, weight: .semibold))
-        let castingChipView = createChipSelectionView(options: ["Film", "TV", "Ads", "Theater", "Web Series"], isMultiSelect: true)
+        stackView.addArrangedSubview(createSpacer(height: 8))
+        
+        // Casting Types (Multi-select chips)
+        stackView.addArrangedSubview(createLabel(text: "Casting Types *", fontSize: 16, weight: .semibold))
+        stackView.addArrangedSubview(createLabel(text: "Select all that apply", fontSize: 13, weight: .regular, color: .secondaryLabel))
+        let castingChipView = createChipSelectionView(options: ["Film", "TV", "Ads", "Theater", "Web Series"], isMultiSelect: true, tag: 2)
         stackView.addArrangedSubview(castingChipView)
         
+        stackView.addArrangedSubview(createSpacer(height: 8))
+        
         // Casting Radius
-        stackView.addArrangedSubview(createLabel(text: "Casting Radius (km)", fontSize: 18, weight: .semibold))
-        let radiusTextField = createTextField(placeholder: "Enter radius")
+        stackView.addArrangedSubview(createLabel(text: "Casting Radius (km)", fontSize: 16, weight: .semibold))
+        let radiusTextField = createTextField(placeholder: "e.g., 50")
         radiusTextField.keyboardType = .numberPad
         self.castingRadiusTextField = radiusTextField
         stackView.addArrangedSubview(radiusTextField)
+        
+        stackView.addArrangedSubview(createSpacer(height: 24))
         
         // Next Button
         let nextButton = createNextButton()
         stackView.addArrangedSubview(nextButton)
         
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
+            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
             stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20)
+            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40)
         ])
     }
     
-    // MARK: - Selection Actions
-    @objc private func employmentStatusSelected(_ sender: UIButton) {
-        selectedEmploymentStatus = sender.title(for: .normal)
-        highlightButton(sender, in: employmentButtons)
-    }
-    
-    @objc private func careerStageSelected(_ sender: UIButton) {
-        selectedCareerStage = sender.title(for: .normal)
-        highlightButton(sender, in: careerStageButtons)
-    }
-    
-    @objc private func experienceSelected(_ sender: UIButton) {
-        let experienceOptions = ["0", "1-2", "3-5", "5+"]
-        selectedExperience = experienceOptions[sender.tag]
-        highlightButton(sender, in: experienceButtons)
-    }
-    
-    @objc private func travelSwitchChanged(_ sender: UISwitch) {
-        // Value is automatically tracked
-    }
-    
-    private func highlightButton(_ selectedButton: UIButton, in buttons: [UIButton]) {
-        buttons.forEach {
-            $0.backgroundColor = UIColor.systemGray6
-            $0.setTitleColor(.black, for: .normal)
-        }
-        selectedButton.backgroundColor = UIColor(red: 0.3, green: 0.1, blue: 0.2, alpha: 1.0)
-        selectedButton.setTitleColor(.white, for: .normal)
-    }
-    
     // MARK: - Helper Methods
-    private func createLabel(text: String, fontSize: CGFloat, weight: UIFont.Weight) -> UILabel {
+    private func createLabel(text: String, fontSize: CGFloat, weight: UIFont.Weight, color: UIColor = .label) -> UILabel {
         let label = UILabel()
         label.text = text
         label.font = .systemFont(ofSize: fontSize, weight: weight)
+        label.textColor = color
         return label
     }
     
-    private func createOptionButton(title: String) -> UIButton {
-        let button = UIButton(type: .system)
-        button.setTitle(title, for: .normal)
-        button.backgroundColor = UIColor.systemGray6
-        button.setTitleColor(.black, for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
-        button.layer.cornerRadius = 12
-        button.heightAnchor.constraint(equalToConstant: 50).isActive = true
-        button.contentHorizontalAlignment = .leading
-        button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
-        return button
+    private func createSpacer(height: CGFloat) -> UIView {
+        let spacer = UIView()
+        spacer.heightAnchor.constraint(equalToConstant: height).isActive = true
+        return spacer
+    }
+    
+    private func createDropdownField(placeholder: String, options: [String], tag: Int) -> UITextField {
+        let textField = UITextField()
+        textField.placeholder = placeholder
+        textField.font = .systemFont(ofSize: 17)
+        textField.backgroundColor = .tertiarySystemGroupedBackground
+        textField.layer.cornerRadius = 10
+        textField.layer.borderWidth = 1
+        textField.layer.borderColor = UIColor.separator.cgColor
+        textField.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        textField.tag = tag
+        
+        // Add left padding
+        textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 50))
+        textField.leftViewMode = .always
+        
+        // Add chevron icon with padding
+        let chevronContainer = UIView(frame: CGRect(x: 0, y: 0, width: 40, height: 50))
+        let chevronView = UIImageView(image: UIImage(systemName: "chevron.down"))
+        chevronView.tintColor = .secondaryLabel
+        chevronView.contentMode = .scaleAspectFit
+        chevronView.frame = CGRect(x: 8, y: 15, width: 20, height: 20)
+        chevronContainer.addSubview(chevronView)
+        textField.rightView = chevronContainer
+        textField.rightViewMode = .always
+        
+        // Setup picker
+        let picker = UIPickerView()
+        picker.tag = tag
+        picker.delegate = self
+        picker.dataSource = self
+        textField.inputView = picker
+        
+        // Add toolbar with Done button
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+        let doneButton = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(donePickerTapped))
+        let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        toolbar.items = [flexSpace, doneButton]
+        textField.inputAccessoryView = toolbar
+        
+        return textField
+    }
+    
+    @objc private func donePickerTapped() {
+        view.endEditing(true)
     }
     
     private func createTextField(placeholder: String) -> UITextField {
         let textField = UITextField()
         textField.placeholder = placeholder
-        textField.borderStyle = .roundedRect
+        textField.font = .systemFont(ofSize: 17)
+        textField.backgroundColor = .tertiarySystemGroupedBackground
+        textField.layer.cornerRadius = 10
+        textField.layer.borderWidth = 1
+        textField.layer.borderColor = UIColor.separator.cgColor
         textField.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        
+        // Add padding
+        textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 50))
+        textField.leftViewMode = .always
+        textField.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 50))
+        textField.rightViewMode = .always
+        
         return textField
     }
     
-    private func createChipSelectionView(options: [String], isMultiSelect: Bool) -> UIView {
+    private func createChipSelectionView(options: [String], isMultiSelect: Bool, tag: Int) -> UIView {
         let containerView = UIView()
         containerView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.tag = tag
         
         let stackView = UIStackView()
         stackView.axis = .vertical
-        stackView.spacing = 8
+        stackView.spacing = 12
         stackView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(stackView)
         
@@ -276,13 +329,19 @@ class RoleDetailsViewController: UIViewController {
             if index % 2 == 0 {
                 currentRow = UIStackView()
                 currentRow?.axis = .horizontal
-                currentRow?.spacing = 8
+                currentRow?.spacing = 12
                 currentRow?.distribution = .fillEqually
                 stackView.addArrangedSubview(currentRow!)
             }
             
-            let chipButton = createChipButton(title: option, isMultiSelect: isMultiSelect)
+            let chipButton = createChipButton(title: option, tag: tag)
             currentRow?.addArrangedSubview(chipButton)
+        }
+        
+        // If odd number of items, add spacer to last row
+        if options.count % 2 != 0 {
+            let spacer = UIView()
+            currentRow?.addArrangedSubview(spacer)
         }
         
         NSLayoutConstraint.activate([
@@ -295,45 +354,66 @@ class RoleDetailsViewController: UIViewController {
         return containerView
     }
     
-    private func createChipButton(title: String, isMultiSelect: Bool) -> UIButton {
+    private func createChipButton(title: String, tag: Int) -> UIButton {
         let button = UIButton(type: .system)
         button.setTitle(title, for: .normal)
-        button.backgroundColor = UIColor.systemGray6
-        button.setTitleColor(.black, for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 14, weight: .medium)
-        button.layer.cornerRadius = 20
-        button.heightAnchor.constraint(equalToConstant: 40).isActive = true
-        
-        if isMultiSelect {
-            button.addTarget(self, action: #selector(chipMultiSelected(_:)), for: .touchUpInside)
-        }
+        button.backgroundColor = .tertiarySystemGroupedBackground
+        button.setTitleColor(.label, for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        button.layer.cornerRadius = 12
+        button.layer.borderWidth = 1.5
+        button.layer.borderColor = UIColor.separator.cgColor
+        button.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        button.tag = tag
+        button.addTarget(self, action: #selector(chipTapped(_:)), for: .touchUpInside)
         
         return button
     }
     
-    @objc private func chipMultiSelected(_ sender: UIButton) {
+    @objc private func chipTapped(_ sender: UIButton) {
         guard let title = sender.title(for: .normal) else { return }
         
-        if sender.backgroundColor == UIColor(red: 0.3, green: 0.1, blue: 0.2, alpha: 1.0) {
-            sender.backgroundColor = UIColor.systemGray6
-            sender.setTitleColor(.black, for: .normal)
-            selectedPrimaryRoles.remove(title)
-            selectedCastingTypes.remove(title)
-        } else {
-            sender.backgroundColor = UIColor(red: 0.3, green: 0.1, blue: 0.2, alpha: 1.0)
-            sender.setTitleColor(.white, for: .normal)
-            
-            if coordinator?.profileData.role == .artist {
-                selectedPrimaryRoles.insert(title)
+        let isSelected = sender.backgroundColor != .tertiarySystemGroupedBackground
+        
+        // Haptic feedback
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+        
+        UIView.animate(withDuration: 0.2) {
+            if isSelected {
+                // Deselect
+                sender.backgroundColor = .tertiarySystemGroupedBackground
+                sender.setTitleColor(.label, for: .normal)
+                sender.layer.borderColor = UIColor.separator.cgColor
+                
+                if sender.tag == 1 {
+                    self.selectedPrimaryRoles.remove(title)
+                } else if sender.tag == 2 {
+                    self.selectedCastingTypes.remove(title)
+                }
             } else {
-                selectedCastingTypes.insert(title)
+                // Select
+                sender.backgroundColor = UIColor(red: 0.3, green: 0.1, blue: 0.2, alpha: 1.0)
+                sender.setTitleColor(.white, for: .normal)
+                sender.layer.borderColor = UIColor(red: 0.3, green: 0.1, blue: 0.2, alpha: 1.0).cgColor
+                
+                if sender.tag == 1 {
+                    self.selectedPrimaryRoles.insert(title)
+                } else if sender.tag == 2 {
+                    self.selectedCastingTypes.insert(title)
+                }
             }
         }
     }
     
     private func createSwitchRow(label: String, switchControl: UISwitch) -> UIView {
         let container = UIView()
-        let labelView = createLabel(text: label, fontSize: 16, weight: .regular)
+        container.backgroundColor = .tertiarySystemGroupedBackground
+        container.layer.cornerRadius = 12
+        container.layer.borderWidth = 1
+        container.layer.borderColor = UIColor.separator.cgColor
+        
+        let labelView = createLabel(text: label, fontSize: 17, weight: .regular)
         labelView.translatesAutoresizingMaskIntoConstraints = false
         switchControl.translatesAutoresizingMaskIntoConstraints = false
         
@@ -341,11 +421,12 @@ class RoleDetailsViewController: UIViewController {
         container.addSubview(switchControl)
         
         NSLayoutConstraint.activate([
-            labelView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            labelView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
             labelView.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            switchControl.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            labelView.trailingAnchor.constraint(equalTo: switchControl.leadingAnchor, constant: -12),
+            switchControl.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
             switchControl.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            container.heightAnchor.constraint(equalToConstant: 50)
+            container.heightAnchor.constraint(equalToConstant: 56)
         ])
         
         return container
@@ -353,21 +434,31 @@ class RoleDetailsViewController: UIViewController {
     
     private func createNextButton() -> UIButton {
         let button = UIButton(type: .system)
-        button.setTitle("Next", for: .normal)
+        button.setTitle("Continue", for: .normal)
         button.backgroundColor = UIColor(red: 0.3, green: 0.1, blue: 0.2, alpha: 1.0)
         button.setTitleColor(.white, for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 18, weight: .semibold)
-        button.layer.cornerRadius = 12
-        button.heightAnchor.constraint(equalToConstant: 56).isActive = true
+        button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        button.layer.cornerRadius = 14
+        button.heightAnchor.constraint(equalToConstant: 54).isActive = true
         button.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
+        
+        // Add shadow for depth
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.1
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
+        
         return button
     }
     
     @objc private func nextTapped() {
         guard validateForm() else {
-            showAlert(message: "Please fill all required fields")
             return
         }
+        
+        // Haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
         
         saveFormData()
         
@@ -377,14 +468,39 @@ class RoleDetailsViewController: UIViewController {
     }
     
     private func validateForm() -> Bool {
-        guard selectedEmploymentStatus != nil else { return false }
+        guard selectedEmploymentStatus != nil else {
+            showAlert(message: "Please select your employment status")
+            return false
+        }
         
         if coordinator?.profileData.role == .artist {
-            return !selectedPrimaryRoles.isEmpty && selectedCareerStage != nil && selectedExperience != nil
+            if selectedPrimaryRoles.isEmpty {
+                showAlert(message: "Please select at least one primary role")
+                return false
+            }
+            if selectedCareerStage == nil {
+                showAlert(message: "Please select your career stage")
+                return false
+            }
+            if selectedExperience == nil {
+                showAlert(message: "Please select your years of experience")
+                return false
+            }
+            return true
         } else {
-            return specificRoleTextField?.text?.isEmpty == false &&
-                   companyNameTextField?.text?.isEmpty == false &&
-                   !selectedCastingTypes.isEmpty
+            if specificRoleTextField?.text?.trimmingCharacters(in: .whitespaces).isEmpty != false {
+                showAlert(message: "Please enter your specific role")
+                return false
+            }
+            if companyNameTextField?.text?.trimmingCharacters(in: .whitespaces).isEmpty != false {
+                showAlert(message: "Please enter your company or production name")
+                return false
+            }
+            if selectedCastingTypes.isEmpty {
+                showAlert(message: "Please select at least one casting type")
+                return false
+            }
+            return true
         }
     }
     
@@ -407,8 +523,59 @@ class RoleDetailsViewController: UIViewController {
     }
     
     private func showAlert(message: String) {
-        let alert = UIAlertController(title: "Required", message: message, preferredStyle: .alert)
+        let alert = UIAlertController(title: "Required Information", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+}
+
+// MARK: - UIPickerView Delegate & DataSource
+extension RoleDetailsViewController: UIPickerViewDelegate, UIPickerViewDataSource {
+    
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        return 1
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        switch pickerView.tag {
+        case 0: // Employment
+            return coordinator?.profileData.role == .artist ? employmentOptionsArtist.count : employmentOptionsCasting.count
+        case 1: // Career Stage
+            return careerStageOptions.count
+        case 2: // Experience
+            return experienceOptions.count
+        default:
+            return 0
+        }
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        switch pickerView.tag {
+        case 0:
+            return coordinator?.profileData.role == .artist ? employmentOptionsArtist[row] : employmentOptionsCasting[row]
+        case 1:
+            return careerStageOptions[row]
+        case 2:
+            return experienceOptions[row] + " years"
+        default:
+            return nil
+        }
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        switch pickerView.tag {
+        case 0: // Employment
+            let options = coordinator?.profileData.role == .artist ? employmentOptionsArtist : employmentOptionsCasting
+            selectedEmploymentStatus = options[row]
+            employmentTextField?.text = options[row]
+        case 1: // Career Stage
+            selectedCareerStage = careerStageOptions[row]
+            careerStageTextField?.text = careerStageOptions[row]
+        case 2: // Experience
+            selectedExperience = experienceOptions[row]
+            experienceTextField?.text = experienceOptions[row] + " years"
+        default:
+            break
+        }
     }
 }
