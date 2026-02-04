@@ -141,7 +141,6 @@ class SignUpViewController: UIViewController {
                 let initialProfile = ProfileRecordForSave(
                     id: userId.uuidString,
                     username: username,
-                    email: email,  // Store email for username → email resolution
                     fullName: fullName,
                     dateOfBirth: nil,
                     profilePictureUrl: nil,

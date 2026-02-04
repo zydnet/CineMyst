@@ -436,7 +436,6 @@ class ProfileInfoViewController: UIViewController {
         let profile = ProfileRecordForSave(
             id: userId.uuidString,
             username: nil,
-            email: nil,
             fullName: nil,
             dateOfBirth: nil,
             profilePictureUrl: nil,

@@ -210,7 +210,7 @@ final class AuthManager {
         let profile = ProfileRecordForSave(
             id: userId.uuidString,
             username: username,
-            email: userEmail,
+            // email: userEmail,
             fullName: fullName,
             dateOfBirth: dateOfBirthStr,
             profilePictureUrl: profilePictureURL,
@@ -306,7 +306,6 @@ final class AuthManager {
 struct ProfileRecordForSave: Encodable {
     let id: String
     let username: String?
-    let email: String?
     let fullName: String?
     let dateOfBirth: String?
     let profilePictureUrl: String?
@@ -328,7 +327,6 @@ struct ProfileRecordForSave: Encodable {
     enum CodingKeys: String, CodingKey {
             case id
             case username
-            case email
             case fullName = "full_name"
             case dateOfBirth = "date_of_birth"
             case profilePictureUrl = "profile_picture_url"

@@ -44,6 +44,7 @@ class OnboardingCoordinator: ObservableObject {
 // MARK: - Profile Data Model
 struct ProfileData {
     // User identity (from signup)
+    var id: String? 
     var username: String?
     var fullName: String?
     
